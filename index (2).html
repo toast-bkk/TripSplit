@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TripSplit</title>
+
+  <!-- CSP: เพิ่ม data: ให้ img-src เพื่อให้ inline SVG favicon ทำงาน
+       และเพิ่ม manifest-src 'self' data: เพื่อรองรับ web app manifest -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none';
+                 frame-src https://script.google.com https://*.googleusercontent.com;
+                 img-src https://i.postimg.cc data:;
+                 style-src 'unsafe-inline';
+                 script-src 'unsafe-inline';
+                 manifest-src 'self' data:;
+                 frame-ancestors 'none';
+                 base-uri 'none';
+                 form-action 'none';">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
+  <!-- ====== PWA / Add to Home Screen ====== -->
+  <!-- iOS: apple-touch-icon ต้องเป็น PNG เท่านั้น (iOS ignore SVG)
+       เปลี่ยน URL ด้านล่างให้ชี้ไปไฟล์ PNG ที่ upload ไว้บน i.postimg.cc -->
+  <link rel="apple-touch-icon" sizes="180x180"
+        href="https://i.postimg.cc/KzCwGyp6/icon-180.png">
+
+  <!-- Favicon สำหรับ browser desktop / tab -->
+  <link rel="icon" type="image/png" sizes="32x32"
+        href="https://i.postimg.cc/63FgWNbD/icon-32.png">
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g1' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%23e8884a'/><stop offset='100%25' stop-color='%239a4a18'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g1)'/><circle cx='11.5' cy='13' r='6' fill='white' fill-opacity='0.92'/><circle cx='20.5' cy='13' r='6' fill='white' fill-opacity='0.6'/><circle cx='16' cy='21' r='6' fill='white' fill-opacity='0.75'/></svg>">
+
+  <!-- iOS PWA meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="TripSplit">
+
+  <!-- Android PWA meta -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="TripSplit">
+  <meta name="theme-color" content="#c46a2b">
+
+  <!-- Web App Manifest (inline base64) — ทำให้ Android Chrome เห็นเป็น PWA จริงๆ
+       ภายในมี name, icons, theme_color, display: standalone
+       ถ้าไม่ต้องการ ลบบรรทัดนี้ได้ -->
+  <link rel="manifest"
+        href='data:application/manifest+json;charset=utf-8,{"name":"TripSplit","short_name":"TripSplit","start_url":".","display":"standalone","background_color":"%23faf7f2","theme_color":"%23c46a2b","icons":[{"src":"https://i.postimg.cc/Y9TZrwyc/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"https://i.postimg.cc/MTgN6833/icon-512.png","sizes":"512x512","type":"image/png"}]}'>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #faf7f2;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <iframe
+    src="https://script.google.com/macros/s/AKfycbxK5a2I7V_BY2RoDb4t05zHHEvEVuzwBOhl9Y_e52PI33D_7Yi-LDXWtORDuZ3tniZgwg/exec"
+    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
+    allow="clipboard-write"
+    referrerpolicy="strict-origin-when-cross-origin"
+    title="TripSplit"></iframe>
+  <script>
+    // กัน clickjacking — ถ้าโดนฝังใน iframe จะ break out
+    if (window.top !== window.self) {
+      try {
+        window.top.location.href = window.self.location.href;
+      } catch (e) {
+        document.body.innerHTML = '<p style="padding:20px;font-family:sans-serif">หน้านี้ไม่อนุญาตให้ฝังในเว็บอื่น</p>';
+      }
+    }
+  </script>
+</body>
+</html>
