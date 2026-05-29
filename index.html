@@ -497,7 +497,8 @@
 
     @keyframes pageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    @keyframes slideDown { from { transform: translateY(-16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes toastBump { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
     @keyframes scaleIn { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 60% { transform: scale(1.03); } 100% { transform: scale(1); opacity: 1; } }
@@ -584,13 +585,18 @@
     .nav-fab.active .nav-icon-wrap { background: transparent; transform: none; }
 
     /* ===== Toast ===== */
-    #toastContainer { position: fixed; top: 60px; left: 0; right: 0; z-index: 9999; pointer-events: none; }
+    #toastContainer {
+      position: fixed; top: 60px; left: 0; right: 0; z-index: 9999;
+      pointer-events: none;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 12px 16px 0;
+    }
     .toast {
-      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
       animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       box-shadow: var(--shadow-lg);
       pointer-events: auto;
       max-width: calc(100% - 32px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
     /* ===== Checkbox ===== */
@@ -2790,6 +2796,24 @@
 
   function showToast(message, type = 'error') {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    // กันข้อความซ้ำ: ถ้ามี toast ข้อความ+ชนิดเดียวกันค้างอยู่ ให้รีเซ็ตเวลานับใหม่แทนสร้างซ้อน
+    const existing = container.querySelector(`.toast[data-msg="${CSS.escape(message)}"][data-type="${type}"]`);
+    if (existing && existing._timer) {
+      clearTimeout(existing._timer);
+      existing._timer = setTimeout(() => dismissToast(existing), 2500);
+      // เด้งเล็กน้อยเพื่อบอกผู้ใช้ว่าเกิดซ้ำ
+      existing.style.animation = 'none';
+      void existing.offsetWidth; // reflow
+      existing.style.animation = 'toastBump 0.3s ease';
+      return;
+    }
+
+    // จำกัดไม่ให้เกิน 3 อันพร้อมกัน — ลบอันเก่าสุดออกก่อน
+    const toasts = container.querySelectorAll('.toast');
+    if (toasts.length >= 3) dismissToast(toasts[0]);
+
     const styleMap = {
       success: { bg: 'var(--success)', color: 'white' },
       error: { bg: 'var(--danger)', color: 'white' },
@@ -2799,16 +2823,23 @@
     const icon = type === 'success' ? 'check' : type === 'info' ? 'info' : 'alert-circle';
     const toast = document.createElement('div');
     toast.className = `toast px-4 py-3 rounded-xl flex items-center gap-2 font-medium text-sm`;
+    toast.setAttribute('data-msg', message);
+    toast.setAttribute('data-type', type);
     toast.style.background = s.bg;
     toast.style.color = s.color;
-    toast.innerHTML = `<i data-lucide="${icon}" class="h-4 w-4"></i> ${escapeHtml(message)}`;
+    toast.innerHTML = `<i data-lucide="${icon}" class="h-4 w-4 shrink-0"></i> <span>${escapeHtml(message)}</span>`;
     container.appendChild(toast);
     lucide.createIcons();
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translate(-50%, -10px)';
-      setTimeout(() => toast.remove(), 300);
-    }, 2500);
+    toast._timer = setTimeout(() => dismissToast(toast), 2500);
+  }
+
+  function dismissToast(toast) {
+    if (!toast || toast._dismissing) return;
+    toast._dismissing = true;
+    if (toast._timer) clearTimeout(toast._timer);
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-10px)';
+    setTimeout(() => toast.remove(), 300);
   }
 
   function escapeHtml(s) {
