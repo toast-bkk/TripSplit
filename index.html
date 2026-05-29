@@ -2878,9 +2878,16 @@
           return;
         }
       } catch (e) { console.warn('Cache read failed:', e); }
-      // ไม่มี cache + offline → แสดง error
-      showToast('ออฟไลน์ และไม่มีข้อมูลที่ cache ไว้', 'error');
-      resetSubmitButton();
+      // ไม่มี cache + offline:
+      // - ถ้ามี appState ที่ใช้งานได้อยู่แล้ว → preserve, callback ด้วย appState เดิม (UI ไม่ flash)
+      // - ถ้าไม่มี → แสดง error
+      if (appState && appState.trips && appState.trips.length > 0) {
+        showToast('ออฟไลน์ — ใช้ข้อมูลปัจจุบัน', 'info');
+        try { onSuccess(appState); } catch (e) { console.error(e); }
+      } else {
+        showToast('ออฟไลน์ และไม่มีข้อมูลที่ cache ไว้', 'error');
+        resetSubmitButton();
+      }
       return;
     }
 
@@ -2904,7 +2911,7 @@
       })
       .catch(err => {
         hideProgress();
-        // ถ้า failure: write op → queue, read op → ลอง cache
+        // ถ้า failure: write op → queue, read op → ลอง cache, fallback → appState ปัจจุบัน
         if (OFFLINE_WRITABLE.has(fnName)) {
           pushOfflineQueue(fnName, args);
           showToast(t('saved_offline'), 'success');
@@ -2920,6 +2927,12 @@
               return;
             }
           } catch (e) {}
+          // ไม่มี cache แต่ยังมี appState → preserve
+          if (appState && appState.trips && appState.trips.length > 0) {
+            showToast('โหลดไม่สำเร็จ — ใช้ข้อมูลปัจจุบัน', 'info');
+            try { onSuccess(appState); } catch (e) { console.error(e); }
+            return;
+          }
           showToast('โหลดไม่สำเร็จ: ' + (err && err.message || 'ไม่ทราบสาเหตุ'));
           resetSubmitButton();
         } else {
@@ -2942,14 +2955,31 @@
     }
   }
 
-  function loadInitialData(requestedTripId = null) {
-    showSkeletons();
+  function loadInitialData(requestedTripId = null, opts = {}) {
+    const { skipSkeletons = false, silent = false } = opts;
+    const hasExistingData = appState && appState.trips && appState.trips.length > 0;
+    // แสดง skeleton เฉพาะตอนยังไม่มีข้อมูล (เปิดแอปครั้งแรก)
+    // ถ้ามีข้อมูลอยู่แล้ว → ไม่ทำลาย UI ระหว่าง refresh
+    if (!hasExistingData && !skipSkeletons) {
+      showSkeletons();
+    }
     const targetTrip = requestedTripId || localStorage.getItem('trip_last_id');
     callBackend('getAppData', [targetTrip], res => {
+      // ป้องกันกรณี res เป็น null/undefined (เช่น offline + no cache)
+      if (!res) {
+        hideSplashScreen();
+        return;
+      }
       appState = res;
-      localStorage.setItem('trip_last_id', res.activeTripId);
+      if (res.activeTripId) {
+        localStorage.setItem('trip_last_id', res.activeTripId);
+      }
       updateAllUI();
       hideSplashScreen();
+      if (!silent && hasExistingData) {
+        // ถ้าเป็นการ refresh สำเร็จ — แจ้งเงียบๆ
+        // ไม่ต้อง toast ทุกครั้ง (รบกวน UX) — ใช้ progress bar เป็น feedback แทน
+      }
     });
   }
 
@@ -5339,8 +5369,8 @@
 
     if (synced > 0) {
       showToast(t('synced') + ' (' + synced + ')', 'success');
-      // Refresh data to show synced state
-      loadInitialData(appState.activeTripId);
+      // Refresh data to show synced state — ไม่ flash UI
+      loadInitialData(appState.activeTripId, { skipSkeletons: true, silent: true });
     }
     if (failed > 0) {
       showToast('Sync failed: ' + failed + ' items', 'error');
@@ -5400,7 +5430,8 @@
         text.innerText = t('refreshing');
         icon.classList.add('animate-spin');
         icon.style.transform = '';
-        loadInitialData(appState.activeTripId);
+        // ไม่ใช้ showSkeletons — ใช้ progress bar + ข้อมูลเดิมแทน
+        loadInitialData(appState.activeTripId, { skipSkeletons: true, silent: true });
         setTimeout(() => {
           ind.style.opacity = '0';
           ind.style.transform = 'translate(-50%, 0)';
@@ -5687,16 +5718,44 @@
     applyLang();
 
     // Network listeners
-    window.addEventListener('online', () => {
+    window.addEventListener('online', async () => {
       updateOfflineUI();
-      showToast('Back online', 'success');
-      syncOfflineQueue();
+      showToast(getLang() === 'en' ? 'Back online — refreshing...' : 'กลับมาออนไลน์ — โหลดข้อมูลใหม่...', 'success');
+      // sync queue ก่อน เพื่อให้ data ที่ค้างไว้ตอน offline ขึ้น sheet ก่อน
+      // แล้วค่อย refresh ให้ได้ข้อมูลล่าสุด (sync queue จะ refresh ให้เองอยู่แล้วถ้ามี item)
+      try {
+        const queue = getOfflineQueue();
+        if (queue.length > 0) {
+          await syncOfflineQueue(); // จะ trigger loadInitialData ใน sync function เอง
+        } else {
+          // ไม่มี queue → refresh data ตรงๆ
+          if (appState && appState.activeTripId) {
+            loadInitialData(appState.activeTripId, { skipSkeletons: true, silent: true });
+          }
+        }
+      } catch (e) {
+        console.error('Auto-refresh on online failed:', e);
+      }
     });
     window.addEventListener('offline', () => {
       updateOfflineUI();
       showToast(t('offline_banner'), 'info');
     });
     updateOfflineUI();
+
+    // iOS Safari: 'online' event บางครั้งไม่ fire ตอนกลับจาก background
+    // ใช้ visibilitychange เป็น backup — ตอนกลับมาเห็นแอปอีกครั้ง + online → refresh data ล่าสุด
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && isOnline() && appState && appState.activeTripId) {
+        // sync queue ถ้ามี
+        if (getOfflineQueue().length > 0) {
+          syncOfflineQueue();
+        } else {
+          // refresh เงียบๆ ไม่แสดง toast (จะรบกวนถ้าเปิด-ปิดแอปบ่อย)
+          loadInitialData(appState.activeTripId, { skipSkeletons: true, silent: true });
+        }
+      }
+    });
 
     initPullToRefresh();
     initCalcStrip();
