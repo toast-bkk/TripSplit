@@ -2836,11 +2836,12 @@
   }
 
   // รายการทริปให้เลือก + ปุ่มสร้างใหม่ (เฉพาะสไลด์ trip)
-  function renderObTripPicker() {
+  function renderObTripPicker(selectedId) {
     const box = document.getElementById('obTripPicker');
     if (!box) return;
     const trips = (appState && appState.trips) || [];
-    const activeId = appState && appState.activeTripId;
+    // ใช้ selectedId ที่ส่งมา (เลือกทันที) ก่อน ถ้าไม่มีค่อยใช้ค่าจริงจาก state
+    const activeId = selectedId != null ? selectedId : (appState && appState.activeTripId);
     const rows = trips.map(tr => `
       <button onclick="obSelectTrip('${tr.id}')" class="w-full flex items-center gap-2.5 p-3 rounded-xl surface-2 border border-themed text-left ${String(tr.id) === String(activeId) ? 'ob-trip-active' : ''}">
         <i data-lucide="map-pin" class="h-4 w-4 accent-text shrink-0"></i>
@@ -2855,10 +2856,11 @@
   }
 
   function obSelectTrip(id) {
+    // อัปเดตไฮไลต์ทันที (optimistic) แล้วค่อยโหลดข้อมูลเบื้องหลัง
+    renderObTripPicker(id);
     if (String(id) !== String(appState.activeTripId)) {
       loadInitialData(id);
     }
-    renderObTripPicker();
   }
 
   // สร้างทริปใหม่จากในออนบอร์ดดิ้ง → ใช้ inputModal เดิม (จะลอยเหนือ onboarding ด้วย z สูงกว่า)
