@@ -13,6 +13,10 @@
   <meta property="og:locale" content="th_TH">
   <meta property="og:site_name" content="TripSplit">
   <meta property="og:image" content="https://toast-bkk.github.io/TripSplit/icon-512.png">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+  <meta property="og:image:alt" content="TripSplit">
+  <meta property="og:url" content="https://toast-bkk.github.io/TripSplit/">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="TripSplit">
   <meta name="twitter:description" content="หารค่าใช้จ่ายทริปกับเพื่อน บันทึกง่าย คำนวณให้อัตโนมัติ รู้ทันทีว่าใครจ่ายใครเท่าไหร่">
@@ -4559,6 +4563,12 @@
     document.getElementById('inputModalSubmit').onclick = () => {
       const val = document.getElementById('modalInput1').value.trim();
       if (!val) return;
+      // กันชื่อทริปซ้ำ (ไม่สนตัวพิมพ์ใหญ่เล็ก + ช่องว่าง)
+      const normTrip = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
+      if ((appState.trips || []).some(tr => normTrip(tr.name) === normTrip(val))) {
+        showToast(getLang() === 'en' ? 'A trip with this name already exists' : 'มีทริปชื่อนี้แล้ว');
+        return;
+      }
       closeModal('inputModal');
       const fromOnboarding = (() => {
         const ob = document.getElementById('onboarding');
@@ -4681,6 +4691,12 @@
     document.getElementById('inputModalSubmit').onclick = () => {
       const val = document.getElementById('modalInput1').value.trim();
       if (!val) return;
+      // กันชื่อซ้ำกับทริปอื่น (ยกเว้นทริปตัวเอง)
+      const normTrip = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
+      if ((appState.trips || []).some(tr => tr.id !== appState.activeTripId && normTrip(tr.name) === normTrip(val))) {
+        showToast(getLang() === 'en' ? 'A trip with this name already exists' : 'มีทริปชื่อนี้แล้ว');
+        return;
+      }
       closeModal('inputModal');
       callBackend('renameTrip', [appState.activeTripId, val], res => {
         appState = res;
