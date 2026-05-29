@@ -18,6 +18,25 @@
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
 
+  <!-- Set --app-height EARLY: ก่อน CSS โหลด เพื่อกัน iOS Safari render รอบแรกผิด
+       (100vh บน iOS รวม browser chrome ทำให้ body สูงเกินจอ → header/footer ดันออกขอบ) -->
+  <script>
+    (function setAppHeight() {
+      function update() {
+        // window.innerHeight = visual viewport height (ไม่รวม Dynamic Island/home indicator)
+        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+      }
+      update();
+      window.addEventListener('resize', update);
+      window.addEventListener('orientationchange', () => setTimeout(update, 150));
+      if (window.visualViewport) {
+        // ตอน keyboard เปิด visualViewport.height จะลด — แต่เราอยากให้ body คงสูง
+        // ใช้ window.innerHeight (ไม่ใช่ visualViewport.height) — innerHeight คงที่เมื่อ keyboard เปิด
+        window.visualViewport.addEventListener('resize', update);
+      }
+    })();
+  </script>
+
   <!-- Service Worker registration — เปิดให้ใช้แบบออฟไลน์ได้ -->
   <script>
     if ('serviceWorker' in navigator) {
@@ -204,7 +223,9 @@
       position: relative;
       overscroll-behavior: none; /* กัน bounce ของ body */
     }
-    html { height: 100%; }
+    html {
+      height: 100%;
+    }
     body {
       font-family: 'IBM Plex Sans Thai', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: var(--bg);
@@ -214,8 +235,11 @@
       /* layout: header (auto) + content (1fr) + nav (auto) */
       display: flex;
       flex-direction: column;
+      /* iOS Safari: ใช้ค่าจาก JS (--app-height) เพื่อกัน initial render ผิด
+         fallback: 100dvh → 100vh → -webkit-fill-available */
+      height: 100vh;
       height: 100dvh;
-      height: 100vh; /* fallback */
+      height: var(--app-height, 100dvh);
     }
 
     /* ===== Scroll container — เลื่อนได้เฉพาะตรงนี้ ===== */
