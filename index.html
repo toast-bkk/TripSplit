@@ -37,6 +37,22 @@
     })();
   </script>
 
+  <!-- Apply theme BEFORE CSS/paint → กัน flash โหมดผิด (FOUC) ตอนโหลด -->
+  <script>
+    (function applyEarlyTheme() {
+      try {
+        var saved = localStorage.getItem('trip_theme'); // 'light' | 'dark' | 'system' | null
+        var isDark;
+        if (saved === 'dark') isDark = true;
+        else if (saved === 'light') isDark = false;
+        else isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; // 'system' หรือยังไม่เคยตั้ง
+        if (isDark) document.documentElement.classList.add('dark');
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = isDark ? '#161412' : '#faf7f2';
+      } catch (e) {}
+    })();
+  </script>
+
   <!-- Service Worker registration — เปิดให้ใช้แบบออฟไลน์ได้ -->
   <script>
     if ('serviceWorker' in navigator) {
@@ -164,6 +180,17 @@
     [data-theme="dark"] .splash-text { color: #e8884a; }
 
     /* ===== Theme Variables ===== */
+    /* Smooth transition ตอนสลับธีม — เฉพาะ property ที่เกี่ยวกับสี
+       (.theme-transition จะถูกถอดออกชั่วคราวตอนโหลดครั้งแรก เพื่อกัน flash) */
+    .theme-transition .surface,
+    .theme-transition .surface-2,
+    .theme-transition .surface-3,
+    .theme-transition .input-themed,
+    .theme-transition .header-icon-btn,
+    .theme-transition .border-themed,
+    .theme-transition .glass-nav {
+      transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
     :root {
       /* Warm tone light theme — สบายตา ไม่หนักเหมือนเทาเย็น */
       --bg: #faf7f2;
@@ -1724,8 +1751,8 @@
       <option value="">กำลังโหลด...</option>
     </select>
   </button>
-  <button onclick="toggleTheme()" class="header-icon-btn" id="themeToggleBtn" aria-label="สลับโหมด">
-    <i data-lucide="moon" class="h-[18px] w-[18px]" id="themeIcon"></i>
+  <button onclick="toggleTheme()" class="header-icon-btn" id="themeToggleBtn" aria-label="สลับโหมดมืด/สว่าง/ตามระบบ">
+    <i data-lucide="monitor" class="h-[18px] w-[18px]" id="themeIcon"></i>
   </button>
 </header>
 
@@ -2219,7 +2246,7 @@
         <span class="text-xs accent-bg-soft px-2 py-0.5 rounded-full font-semibold" id="langBadge">ไทย</span>
       </button>
       <button onclick="toggleTheme()" class="w-full flex items-center gap-3 p-2.5 rounded-lg surface-2 text-sm">
-        <i data-lucide="palette" class="h-4 w-4 text-soft shrink-0"></i>
+        <i data-lucide="monitor" class="h-4 w-4 text-soft shrink-0" id="navThemeIcon"></i>
         <span class="font-medium text-main flex-1 text-left" data-i18n="settings_theme">ธีม / โหมดมืด</span>
         <span class="text-xs surface-3 px-2 py-0.5 rounded-full font-semibold" id="themeBadge">Light</span>
       </button>
@@ -2667,33 +2694,47 @@
   }
 
   // ============ THEME ============
-  function getCurrentTheme() {
-    // ถ้ามี user pref ใน localStorage ใช้ค่านั้น
+  // โหมดที่ผู้ใช้ตั้งไว้: 'light' | 'dark' | 'system'
+  function getThemePref() {
     const saved = localStorage.getItem('trip_theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    // ครั้งแรกที่เปิด: ใช้ตามโหมดมืด/สว่างของระบบ
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    return 'light';
+    if (saved === 'dark' || saved === 'light' || saved === 'system') return saved;
+    return 'system'; // default = ตามระบบ
   }
 
-  function applyTheme(theme) {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      const icon = document.getElementById('themeIcon');
-      if (icon) icon.setAttribute('data-lucide', 'sun');
-      const navIcon = document.getElementById('navThemeIcon');
-      if (navIcon) navIcon.setAttribute('data-lucide', 'sun');
-      lucide.createIcons();
-    } else {
-      document.documentElement.classList.remove('dark');
-      const icon = document.getElementById('themeIcon');
-      if (icon) icon.setAttribute('data-lucide', 'moon');
-      const navIcon = document.getElementById('navThemeIcon');
-      if (navIcon) navIcon.setAttribute('data-lucide', 'moon');
-      lucide.createIcons();
-    }
+  // เช็คว่าระบบปฏิบัติการตั้งเป็นมืดไหม
+  function systemPrefersDark() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  // theme ที่ "ใช้จริง" หลัง resolve โหมด system → 'light' | 'dark'
+  function getResolvedTheme() {
+    const pref = getThemePref();
+    if (pref === 'system') return systemPrefersDark() ? 'dark' : 'light';
+    return pref;
+  }
+
+  // ใช้เพื่อความเข้ากันได้กับโค้ดเดิมที่เรียก getCurrentTheme()
+  function getCurrentTheme() {
+    return getResolvedTheme();
+  }
+
+  function applyTheme(pref) {
+    // pref อาจเป็น light/dark/system — resolve เป็นค่าจริงก่อน
+    const resolved = (pref === 'system')
+      ? (systemPrefersDark() ? 'dark' : 'light')
+      : pref;
+
+    document.documentElement.classList.toggle('dark', resolved === 'dark');
+
+    // ไอคอนปุ่มบน header: system → monitor, dark → sun, light → moon
+    const currentPref = getThemePref();
+    const iconName = currentPref === 'system' ? 'monitor' : (resolved === 'dark' ? 'sun' : 'moon');
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.setAttribute('data-lucide', iconName);
+    const navIcon = document.getElementById('navThemeIcon');
+    if (navIcon) navIcon.setAttribute('data-lucide', iconName);
+    if (window.lucide) lucide.createIcons();
+
     // Update meta theme-color
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
@@ -2701,7 +2742,8 @@
       meta.name = 'theme-color';
       document.head.appendChild(meta);
     }
-    meta.content = theme === 'dark' ? '#161412' : '#faf7f2';
+    meta.content = resolved === 'dark' ? '#161412' : '#faf7f2';
+
     // Re-render charts so colors update
     if (categoryChartInstance) {
       setTimeout(renderCharts, 50);
@@ -2710,21 +2752,32 @@
     if (typeof updateSettingsBadges === 'function') updateSettingsBadges();
   }
 
+  // หมุนวน light → dark → system → light ...
   function toggleTheme() {
-    const next = getCurrentTheme() === 'dark' ? 'light' : 'dark';
+    const order = ['light', 'dark', 'system'];
+    const next = order[(order.indexOf(getThemePref()) + 1) % order.length];
     localStorage.setItem('trip_theme', next);
     applyTheme(next);
+    if (typeof showToast === 'function') {
+      const th = getLang() === 'th';
+      const label = next === 'light' ? (th ? 'โหมดสว่าง' : 'Light')
+                  : next === 'dark'  ? (th ? 'โหมดมืด'  : 'Dark')
+                  :                    (th ? 'ตามระบบ'  : 'System');
+      showToast(label, 'info');
+    }
   }
   // Apply theme immediately to avoid flash
-  applyTheme(getCurrentTheme());
+  applyTheme(getThemePref());
+  // เปิด smooth transition หลัง paint เฟรมแรก (กัน flash ตอนโหลด)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => document.body.classList.add('theme-transition'));
+  });
 
-  // ตามระบบต่อ ถ้าผู้ใช้ยังไม่เคยเลือกเอง (ไม่มี trip_theme ใน localStorage)
+  // ตามระบบแบบ real-time เมื่ออยู่ในโหมด 'system'
   if (window.matchMedia) {
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleSchemeChange = (e) => {
-      if (!localStorage.getItem('trip_theme')) {
-        applyTheme(e.matches ? 'dark' : 'light');
-      }
+    const handleSchemeChange = () => {
+      if (getThemePref() === 'system') applyTheme('system');
     };
     if (mql.addEventListener) mql.addEventListener('change', handleSchemeChange);
     else if (mql.addListener) mql.addListener(handleSchemeChange); // Safari เก่า
@@ -4092,8 +4145,11 @@
     if (langBadge) langBadge.innerText = getLang() === 'th' ? 'ไทย' : 'EN';
     const themeBadge = document.getElementById('themeBadge');
     if (themeBadge) {
-      const isDark = document.documentElement.classList.contains('dark');
-      themeBadge.innerText = isDark ? (getLang() === 'th' ? 'มืด' : 'Dark') : (getLang() === 'th' ? 'สว่าง' : 'Light');
+      const pref = (typeof getThemePref === 'function') ? getThemePref() : 'light';
+      const th = getLang() === 'th';
+      themeBadge.innerText = pref === 'light' ? (th ? 'สว่าง' : 'Light')
+                          : pref === 'dark'  ? (th ? 'มืด'   : 'Dark')
+                          :                    (th ? 'ตามระบบ' : 'System');
     }
   }
 
