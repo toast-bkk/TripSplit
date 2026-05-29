@@ -4442,8 +4442,11 @@
         appState = res;
         updateAllUI();
         showToast('สร้างทริปสำเร็จ', 'success');
-        // ถ้าออนบอร์ดดิ้งเปิดอยู่ → อัปเดตรายการทริปให้เห็นทริปใหม่
-        if (typeof renderObTripPicker === 'function') renderObTripPicker();
+        // ถ้าสร้างจากในออนบอร์ดดิ้ง → จบออนบอร์ดดิ้งแล้วเข้าหน้าแอปทันที
+        const ob = document.getElementById('onboarding');
+        if (ob && ob.classList.contains('show')) {
+          finishOnboarding();
+        }
       });
     };
   }
