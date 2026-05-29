@@ -286,6 +286,102 @@
     .danger-bg-soft { background: var(--danger-soft); color: var(--danger); }
     .warning-bg-soft { background: var(--warning-soft); color: var(--warning); }
 
+    /* ===== App Header ===== */
+    .app-header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      z-index: 40;
+    }
+    /* Trip pill — รวม logo + ชื่อทริป + ลูกศร ใน clickable surface เดียว */
+    .trip-pill {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px 6px 6px;
+      background: var(--surface-2);
+      border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+      border-radius: 999px;
+      transition: background 0.15s, transform 0.1s, border-color 0.15s;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+    .trip-pill:active {
+      transform: scale(0.98);
+      background: color-mix(in srgb, var(--surface-2) 80%, var(--primary-soft));
+    }
+    .trip-pill-logo {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+    }
+    .trip-pill-name {
+      flex: 1;
+      min-width: 0;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+    .trip-pill-chev {
+      color: var(--text-3);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .trip-pill:hover .trip-pill-chev {
+      transform: translateY(1px);
+      color: var(--text-2);
+    }
+    /* ซ่อน select ไว้แต่ยัง interactive ได้ */
+    .trip-pill-select {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-size: 16px; /* กัน iOS zoom */
+    }
+
+    /* Header icon button (ปุ่ม dark mode etc) */
+    .header-icon-btn {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-2);
+      color: var(--text-2);
+      border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+      transition: background 0.15s, transform 0.1s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .header-icon-btn:active {
+      transform: scale(0.92);
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
     /* ===== Nav ===== */
     .glass-nav {
       background: color-mix(in srgb, var(--surface) 92%, transparent);
@@ -313,10 +409,39 @@
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 60% { transform: scale(1.03); } 100% { transform: scale(1); opacity: 1; } }
 
-    .nav-item { color: var(--text-3); transition: color 0.25s, transform 0.2s; }
+    .nav-item {
+      color: var(--text-3);
+      transition: color 0.2s, transform 0.15s;
+      position: relative;
+      padding: 4px 0 2px;
+      -webkit-tap-highlight-color: transparent;
+    }
     .nav-item.active { color: var(--primary); }
-    .nav-item.active .nav-icon-wrap { background: var(--primary-soft); transform: scale(1.05); }
-    .nav-icon-wrap { padding: 6px 14px; border-radius: 12px; transition: background 0.25s, transform 0.2s; }
+    .nav-item:active { transform: scale(0.92); }
+    .nav-icon-wrap {
+      padding: 5px 12px;
+      border-radius: 12px;
+      transition: background 0.2s, transform 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-item.active .nav-icon-wrap {
+      background: var(--primary-soft);
+    }
+    .nav-item .nav-icon-wrap i {
+      width: 22px;
+      height: 22px;
+    }
+    .nav-item span {
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: 1px;
+      transition: font-weight 0.15s;
+    }
+    .nav-item.active span {
+      font-weight: 700;
+    }
 
     /* ===== Center FAB ===== */
     .nav-fab {
@@ -326,19 +451,22 @@
       gap: 2px;
       position: relative;
       /* ดันให้ขึ้นเหนือ nav เล็กน้อย */
-      margin-top: -28px;
+      margin-top: -26px;
     }
     .nav-fab-circle {
-      width: 54px;
-      height: 54px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
-      background: var(--primary);
+      background: linear-gradient(135deg,
+        color-mix(in srgb, var(--primary) 92%, white),
+        var(--primary)
+      );
       color: var(--primary-text);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--primary) 50%, transparent),
-                  0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--primary) 55%, transparent),
+                  0 2px 4px rgba(0,0,0,0.08);
       transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
       /* วงแหวนรอบ FAB ให้เด่นในขณะ nav blur */
       border: 4px solid var(--bg);
@@ -347,13 +475,18 @@
       transform: scale(0.92);
     }
     .nav-fab.active .nav-fab-circle {
-      transform: scale(1.05);
-      box-shadow: 0 8px 20px -4px color-mix(in srgb, var(--primary) 60%, transparent),
-                  0 2px 4px rgba(0,0,0,0.15);
+      transform: scale(1.06) rotate(45deg);
+      box-shadow: 0 10px 24px -6px color-mix(in srgb, var(--primary) 65%, transparent),
+                  0 2px 4px rgba(0,0,0,0.12);
     }
     .nav-fab.active { color: var(--primary); }
-    .nav-fab span { color: var(--text-3); transition: color 0.25s; }
-    .nav-fab.active span { color: var(--primary); font-weight: 600; }
+    .nav-fab span {
+      color: var(--text-3);
+      transition: color 0.25s, font-weight 0.15s;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .nav-fab.active span { color: var(--primary); font-weight: 700; }
     /* override .nav-item.active .nav-icon-wrap for FAB (since FAB doesn't use nav-icon-wrap) */
     .nav-fab.active .nav-icon-wrap { background: transparent; transform: none; }
 
@@ -1495,10 +1628,10 @@
 </div>
 
 <!-- ===== Header ===== -->
-<header class="surface shadow-soft z-40 px-4 py-3 flex items-center justify-between gap-2 border-b border-themed" style="padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));">
-  <div class="flex items-center gap-2 flex-1 min-w-0">
-    <div class="shrink-0">
-      <svg width="32" height="32" viewBox="0 0 32 32" style="display:block;">
+<header class="app-header" style="padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));">
+  <button onclick="toggleTripDropdown()" class="trip-pill" aria-label="เลือกทริป">
+    <span class="trip-pill-logo">
+      <svg width="22" height="22" viewBox="0 0 32 32" style="display:block;">
         <defs>
           <linearGradient id="logo-g1" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stop-color="#e8884a"/>
@@ -1510,17 +1643,15 @@
         <circle cx="20.5" cy="13" r="6" fill="white" fill-opacity="0.6"/>
         <circle cx="16" cy="21" r="6" fill="white" fill-opacity="0.75"/>
       </svg>
-    </div>
-    <div class="relative flex-1 min-w-0">
-      <select id="tripSelector" onchange="switchTrip()"
-              class="font-bold text-lg text-main bg-transparent border-none outline-none truncate w-full appearance-none cursor-pointer pr-5">
-        <option value="">กำลังโหลด...</option>
-      </select>
-      <i data-lucide="chevron-down" class="h-4 w-4 text-muted absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-    </div>
-  </div>
-  <button onclick="toggleTheme()" class="p-2 rounded-full hover:surface-2 text-soft shrink-0" id="themeToggleBtn" title="สลับโหมด">
-    <i data-lucide="moon" class="h-5 w-5" id="themeIcon"></i>
+    </span>
+    <span id="tripNameDisplay" class="trip-pill-name">กำลังโหลด...</span>
+    <i data-lucide="chevron-down" class="h-4 w-4 trip-pill-chev"></i>
+    <select id="tripSelector" onchange="switchTrip()" class="trip-pill-select" aria-hidden="true">
+      <option value="">กำลังโหลด...</option>
+    </select>
+  </button>
+  <button onclick="toggleTheme()" class="header-icon-btn" id="themeToggleBtn" aria-label="สลับโหมด">
+    <i data-lucide="moon" class="h-[18px] w-[18px]" id="themeIcon"></i>
   </button>
 </header>
 
@@ -2023,14 +2154,14 @@
 
 <!-- ===== Bottom Nav ===== -->
 <nav class="glass-nav z-50">
-  <div class="max-w-md mx-auto grid grid-cols-5 items-end px-2 py-2 relative">
-    <button onclick="switchTab('view-summary')" class="nav-item flex flex-col items-center gap-0.5 active" data-target="view-summary">
-      <div class="nav-icon-wrap"><i data-lucide="wallet" class="h-5 w-5"></i></div>
-      <span class="text-[10px] font-medium" data-i18n="nav_summary">สรุป</span>
+  <div class="max-w-md mx-auto grid grid-cols-5 items-end px-2 pt-2 pb-1 relative">
+    <button onclick="switchTab('view-summary')" class="nav-item flex flex-col items-center active" data-target="view-summary">
+      <div class="nav-icon-wrap"><i data-lucide="wallet"></i></div>
+      <span data-i18n="nav_summary">สรุป</span>
     </button>
-    <button onclick="switchTab('view-settle')" class="nav-item flex flex-col items-center gap-0.5" data-target="view-settle">
-      <div class="nav-icon-wrap"><i data-lucide="arrow-right-left" class="h-5 w-5"></i></div>
-      <span class="text-[10px] font-medium" data-i18n="nav_settle">เคลียร์</span>
+    <button onclick="switchTab('view-settle')" class="nav-item flex flex-col items-center" data-target="view-settle">
+      <div class="nav-icon-wrap"><i data-lucide="arrow-right-left"></i></div>
+      <span data-i18n="nav_settle">เคลียร์</span>
     </button>
 
     <!-- Center FAB: บันทึก (เด่นกว่าปุ่มอื่น) -->
@@ -2038,16 +2169,16 @@
       <div class="nav-fab-circle">
         <i data-lucide="plus" class="h-6 w-6"></i>
       </div>
-      <span class="text-[10px] font-medium mt-1" data-i18n="nav_record">บันทึก</span>
+      <span data-i18n="nav_record">บันทึก</span>
     </button>
 
-    <button onclick="switchTab('view-history')" class="nav-item flex flex-col items-center gap-0.5" data-target="view-history">
-      <div class="nav-icon-wrap"><i data-lucide="history" class="h-5 w-5"></i></div>
-      <span class="text-[10px] font-medium" data-i18n="nav_history">ประวัติ</span>
+    <button onclick="switchTab('view-history')" class="nav-item flex flex-col items-center" data-target="view-history">
+      <div class="nav-icon-wrap"><i data-lucide="history"></i></div>
+      <span data-i18n="nav_history">ประวัติ</span>
     </button>
-    <button onclick="switchTab('view-settings')" class="nav-item flex flex-col items-center gap-0.5" data-target="view-settings">
-      <div class="nav-icon-wrap"><i data-lucide="settings" class="h-5 w-5"></i></div>
-      <span class="text-[10px] font-medium" data-i18n="nav_settings">ตั้งค่า</span>
+    <button onclick="switchTab('view-settings')" class="nav-item flex flex-col items-center" data-target="view-settings">
+      <div class="nav-icon-wrap"><i data-lucide="settings"></i></div>
+      <span data-i18n="nav_settings">ตั้งค่า</span>
     </button>
   </div>
 </nav>
@@ -2583,9 +2714,9 @@
   const OFFLINE_WRITABLE = new Set(['addExpense', 'editExpense', 'deleteExpense', 'addParticipant', 'deleteParticipant', 'addTrip', 'renameTrip', 'addCategory', 'setTripPool', 'addTopupAll', 'refundPool']);
 
   // ============ BACKEND API CONFIG ============
-  // URL ของ Apps Script Web App — ตั้งหลัง deploy
-  // วิธีหา: Apps Script editor → Deploy → Manage deployments → คัดลอก "Web app" URL (ลงท้ายด้วย /exec)
-  const SCRIPT_URL = (window.__SCRIPT_URL__ || localStorage.getItem('script_url') || '').trim();
+  // URL ของ Apps Script Web App
+  // ถ้าจะเปลี่ยน backend ใหม่: deploy code.gs → คัดลอก URL /exec → แทนค่าด้านล่าง
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxK5a2I7V_BY2RoDb4t05zHHEvEVuzwBOhl9Y_e52PI33D_7Yi-LDXWtORDuZ3tniZgwg/exec';
 
   // Helper: cache key สำหรับ getAppData ต่อ trip
   function cacheKeyFor(fnName, args) {
@@ -2901,6 +3032,12 @@
     selector.innerHTML = appState.trips.map(t =>
       `<option value="${t.id}" ${t.id === appState.activeTripId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
     ).join('');
+    // อัปเดต display ของ trip name (ตัว pill)
+    const tripNameEl = document.getElementById('tripNameDisplay');
+    if (tripNameEl) {
+      const activeTrip = appState.trips.find(t => t.id === appState.activeTripId);
+      tripNameEl.textContent = activeTrip ? activeTrip.name : '—';
+    }
 
     // Categories — populate ทั้ง <select> ซ่อน และ panel emoji-only picker
     const catSelect = document.getElementById('category');
@@ -2975,6 +3112,17 @@
       cancelEdit(); // reset edit state when switching trip
       loadInitialData(newTripId);
     }
+  }
+
+  // เปิด native dropdown ของ <select> เมื่อกด pill ใน header
+  function toggleTripDropdown() {
+    const sel = document.getElementById('tripSelector');
+    if (!sel) return;
+    if (typeof sel.showPicker === 'function') {
+      try { sel.showPicker(); return; } catch (e) { /* fallback */ }
+    }
+    sel.focus();
+    sel.click();
   }
 
   // ============ TABS ============
@@ -5371,54 +5519,8 @@
   }
 
   // ============ INIT ============
-  // ============ Config screen — ถ้ายังไม่ตั้ง SCRIPT_URL ============
-  function showConfigScreen() {
-    const html = `
-      <div style="position:fixed; inset:0; background:var(--bg); z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; gap:16px;">
-        <div style="max-width:480px; width:100%;">
-          <h1 style="font-size:22px; font-weight:700; color:var(--text); margin-bottom:6px;">🔧 ตั้งค่าครั้งแรก</h1>
-          <p style="font-size:14px; color:var(--text-2); margin-bottom:20px; line-height:1.5;">
-            กรุณาวาง <b>URL ของ Apps Script Web App</b><br>
-            <span style="font-size:12px; color:var(--text-3);">
-              (Apps Script editor → Deploy → Manage deployments → คัดลอก URL ลงท้ายด้วย <code>/exec</code>)
-            </span>
-          </p>
-          <input id="cfgScriptUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec"
-            style="width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font-size:14px; margin-bottom:14px;">
-          <button id="cfgSaveBtn"
-            style="width:100%; padding:12px; background:var(--primary); color:var(--primary-text); border:none; border-radius:10px; font-weight:700; font-size:15px; cursor:pointer;">
-            บันทึก แล้วเริ่มใช้งาน
-          </button>
-          <p style="font-size:11px; color:var(--text-3); margin-top:14px; text-align:center;">
-            URL จะถูกบันทึกในเครื่องของคุณเอง (localStorage)
-          </p>
-        </div>
-      </div>
-    `;
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    document.body.appendChild(div);
-
-    document.getElementById('cfgSaveBtn').onclick = () => {
-      const url = document.getElementById('cfgScriptUrl').value.trim();
-      if (!url || !url.startsWith('https://')) {
-        showToast('URL ไม่ถูกต้อง', 'error');
-        return;
-      }
-      localStorage.setItem('script_url', url);
-      window.location.reload();
-    };
-  }
-
   window.onload = () => {
     applyLang();
-
-    // เช็ค config ก่อน — ถ้าไม่มี SCRIPT_URL → แสดง config screen
-    if (!SCRIPT_URL) {
-      hideSplashScreen();
-      showConfigScreen();
-      return;
-    }
 
     // Network listeners
     window.addEventListener('online', () => {
