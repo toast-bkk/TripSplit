@@ -1195,12 +1195,11 @@
       vertical-align: middle;
       flex-shrink: 0;
     }
-    /* Emoji avatar — ใช้ emoji แทนตัวอักษร พื้นโปร่ง */
+    /* Emoji avatar — ใช้ emoji แทนตัวอักษร แต่ยังอยู่ในวงกลมสีพื้น */
     .matrix-avatar-emoji {
-      background: transparent !important;
-      color: inherit !important;
+      font-weight: normal;
       line-height: 1;
-      /* รักษาขนาด container แต่ให้ emoji ใหญ่กว่าตัวอักษร */
+      /* emoji ใหญ่กว่าตัวอักษร แต่ไม่ใหญ่จนล้นวงกลม (62% ของขนาด container) */
     }
     .matrix-person-label {
       display: flex;
@@ -4208,7 +4207,7 @@
             <div class="balance-card-header">
               <div class="balance-name-wrap">
                 ${avatarHTML(name, 26)}
-                <span class="balance-name">${escapeHtml(name)}</span>
+                <span class="balance-name">${escapeHtml(displayName(name))}</span>
               </div>
               ${statusPill}
             </div>
@@ -4410,20 +4409,25 @@
     return palette[Math.abs(hash) % palette.length];
   }
   // Detect emoji ที่ขึ้นต้นชื่อ — return [emoji, restOfName] หรือ [null, fullName]
+  // restOfName = ชื่อหลังตัด emoji แล้ว trim (อาจเป็น '' ถ้าชื่อมีแค่ emoji)
   // ครอบคลุม emoji ทั่วไป รวม emoji ที่มี modifier (skin tone), ZWJ sequences, regional indicators
   function extractLeadingEmoji(name) {
     if (!name) return [null, ''];
     const trimmed = name.trim();
     if (!trimmed) return [null, ''];
-    // Regex จับ emoji ที่ขึ้นต้น (Unicode property escape) + optional VS + modifier + ZWJ chain
-    // \p{Extended_Pictographic} = emoji ทุกตัว, รวม ZWJ sequence ที่ตามด้วยตัวอื่น
+    // Regex จับ emoji ที่ขึ้นต้น:
+    // - Flag emoji = 2 regional indicators ติดกัน (🇹🇭 = 2 code points รวม)
+    // - หรือ Extended_Pictographic + optional modifier + ZWJ chain
+    const flagRegex = /^(\p{Regional_Indicator}\p{Regional_Indicator})/u;
     const emojiRegex = /^(\p{Extended_Pictographic}(\u200d\p{Extended_Pictographic})*(\uFE0F)?(\p{Emoji_Modifier})?(\u200d\p{Extended_Pictographic}(\uFE0F)?(\p{Emoji_Modifier})?)*)/u;
     try {
-      const m = trimmed.match(emojiRegex);
+      // ลอง flag ก่อน (เพราะ regional indicators เป็น subset ของ emoji แต่ต้องเป็นคู่)
+      let m = trimmed.match(flagRegex);
+      if (!m) m = trimmed.match(emojiRegex);
       if (m && m[1]) {
         const emoji = m[1];
         const rest = trimmed.slice(emoji.length).trim();
-        return [emoji, rest || trimmed];
+        return [emoji, rest];
       }
     } catch (e) {
       // browser ไม่รองรับ unicode property escape — fallback ใช้ heuristic
@@ -4432,10 +4436,18 @@
         // emoji อยู่ใน Supplementary Multilingual Plane (2 code units)
         const emoji = String.fromCodePoint(code);
         const rest = trimmed.slice(emoji.length).trim();
-        return [emoji, rest || trimmed];
+        return [emoji, rest];
       }
     }
     return [null, trimmed];
+  }
+
+  // คืนชื่อแบบ "ตัด emoji prefix ออก" — ใช้กับจุดที่แสดง avatar คู่กับชื่อ
+  function displayName(name) {
+    const [emoji, rest] = extractLeadingEmoji(name);
+    if (emoji && rest) return rest;
+    // ไม่มี emoji หรือชื่อมีแค่ emoji ล้วน → คืนชื่อเดิม
+    return name;
   }
 
   function avatarHTML(name, size) {
@@ -4443,9 +4455,10 @@
     const [emoji, rest] = extractLeadingEmoji(name);
 
     if (emoji) {
-      // ถ้ามี emoji ขึ้นต้น → ใช้ emoji เป็น avatar (พื้นโปร่ง ไม่ต้องใส่สี)
-      const emojiSize = Math.floor(sz * 0.72);
-      return `<span class="matrix-avatar matrix-avatar-emoji" style="width:${sz}px; height:${sz}px; font-size:${emojiSize}px;">${escapeHtml(emoji)}</span>`;
+      // ถ้ามี emoji ขึ้นต้น → ใช้ emoji เป็น avatar ใน "วงกลมสีพื้น" (สีจาก hash ของชื่อ)
+      // emoji อยู่ตรงกลาง พื้นเป็นสี hash-based เหมือน avatar ตัวอักษร
+      const emojiSize = Math.floor(sz * 0.62);
+      return `<span class="matrix-avatar matrix-avatar-emoji" style="background:${getAvatarColor(name)}; width:${sz}px; height:${sz}px; font-size:${emojiSize}px;">${escapeHtml(emoji)}</span>`;
     }
     // ชื่อปกติ → ใช้ตัวอักษรแรก + สีจาก hash
     const initial = (name || '?').trim().charAt(0).toUpperCase();
@@ -4464,7 +4477,7 @@
     html += `<th class="matrix-col-total">${lang === 'en' ? 'Total' : 'รวม'}</th>`;
     // header คอลัมน์คน — ใส่ avatar สีเล็กๆ เหนือชื่อ ให้ระบุคนง่ายและสวยขึ้น
     people.forEach(p => {
-      html += `<th><div class="matrix-th-person">${avatarHTML(p, 22)}<span class="matrix-th-name">${escapeHtml(p)}</span></div></th>`;
+      html += `<th><div class="matrix-th-person">${avatarHTML(p, 22)}<span class="matrix-th-name">${escapeHtml(displayName(p))}</span></div></th>`;
     });
     html += '</tr></thead><tbody>';
 
@@ -4556,7 +4569,7 @@
       html += `<td>
         <div class="matrix-person-label">
           ${avatarHTML(p, 26)}
-          <span class="matrix-person-name">${escapeHtml(p)}</span>
+          <span class="matrix-person-name">${escapeHtml(displayName(p))}</span>
         </div>
       </td>`;
       html += numCell(b.paid);
