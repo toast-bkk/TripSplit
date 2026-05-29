@@ -303,11 +303,11 @@
       /* layout: header (auto) + content (1fr) + nav (auto) */
       display: flex;
       flex-direction: column;
-      /* iOS Safari: ใช้ค่าจาก JS (--app-height) เพื่อกัน initial render ผิด
-         fallback: 100dvh → 100vh → -webkit-fill-available */
-      height: 100vh;
-      height: 100dvh;
-      height: var(--app-height, 100dvh);
+      /* ตรึงกับขอบจอจริงทั้ง 4 ด้าน — ชัวร์ทั้ง browser และ standalone (PWA)
+         ไม่ต้องพึ่งค่าความสูงที่คำนวณ ซึ่งเพี้ยนในโหมด status bar โปร่งใส */
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      height: auto;
     }
 
     /* ===== Scroll container — เลื่อนได้เฉพาะตรงนี้ ===== */
