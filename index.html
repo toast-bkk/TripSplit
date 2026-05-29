@@ -53,18 +53,25 @@
     })();
   </script>
 
-  <!-- Track keyboard height → ตั้ง --kb-inset ให้ modal ดันขึ้นเหนือคีย์บอร์ด -->
+  <!-- Track visual viewport → ให้ modal ที่มี input จัดกึ่งกลางในพื้นที่เหนือคีย์บอร์ดเสมอ -->
   <script>
-    (function trackKeyboard() {
+    (function trackViewport() {
       var vv = window.visualViewport;
-      if (!vv) return;
+      var root = document.documentElement;
       function update() {
-        // ส่วนที่ keyboard บัง = ความสูงหน้าต่างเต็ม - (ความสูง viewport ที่เห็น + offset บน)
-        var inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-        document.documentElement.style.setProperty('--kb-inset', inset + 'px');
+        if (vv) {
+          root.style.setProperty('--vv-height', vv.height + 'px');
+          root.style.setProperty('--vv-top', vv.offsetTop + 'px');
+        } else {
+          root.style.setProperty('--vv-height', window.innerHeight + 'px');
+          root.style.setProperty('--vv-top', '0px');
+        }
       }
-      vv.addEventListener('resize', update);
-      vv.addEventListener('scroll', update);
+      if (vv) {
+        vv.addEventListener('resize', update);
+        vv.addEventListener('scroll', update);
+      }
+      window.addEventListener('resize', update);
       update();
     })();
   </script>
@@ -634,14 +641,18 @@
 
     /* ===== Modal ===== */
     .modal-box { animation: scaleIn 0.28s cubic-bezier(0.16, 1, 0.3, 1); background: var(--surface); color: var(--text); }
-    /* inputModal: เมื่อ keyboard เปิด viewport หด → จัดชิดบน + scroll ได้ กันปุ่มหลุดใต้คีย์บอร์ด
-       ใช้ --kb-inset จาก JS (visualViewport) ดัน content ขึ้นเหนือคีย์บอร์ด */
+    /* inputModal: ยึดความสูงตาม visual viewport (พื้นที่ที่เห็นจริงเหนือคีย์บอร์ด)
+       เพื่อจัดกึ่งกลาง + กันปุ่มหลุดใต้คีย์บอร์ด/แถบเมนูล่าง */
     #inputModal {
-      align-items: flex-start;
+      align-items: center;
+      z-index: 70; /* สูงกว่า glass-nav (50) เพื่อไม่ให้เมนูล่างทับ */
+      height: var(--vv-height, 100dvh);
+      top: var(--vv-top, 0px);
+      bottom: auto;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding-top: max(48px, env(safe-area-inset-top));
-      padding-bottom: calc(24px + var(--kb-inset, 0px));
+      padding-top: 16px;
+      padding-bottom: 16px;
     }
     #inputModal .modal-box { margin: auto 0; }
     #actionSheet .modal-box { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
