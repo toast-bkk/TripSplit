@@ -53,6 +53,22 @@
     })();
   </script>
 
+  <!-- Track keyboard height → ตั้ง --kb-inset ให้ modal ดันขึ้นเหนือคีย์บอร์ด -->
+  <script>
+    (function trackKeyboard() {
+      var vv = window.visualViewport;
+      if (!vv) return;
+      function update() {
+        // ส่วนที่ keyboard บัง = ความสูงหน้าต่างเต็ม - (ความสูง viewport ที่เห็น + offset บน)
+        var inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        document.documentElement.style.setProperty('--kb-inset', inset + 'px');
+      }
+      vv.addEventListener('resize', update);
+      vv.addEventListener('scroll', update);
+      update();
+    })();
+  </script>
+
   <!-- Service Worker registration — เปิดให้ใช้แบบออฟไลน์ได้ -->
   <script>
     if ('serviceWorker' in navigator) {
@@ -618,6 +634,16 @@
 
     /* ===== Modal ===== */
     .modal-box { animation: scaleIn 0.28s cubic-bezier(0.16, 1, 0.3, 1); background: var(--surface); color: var(--text); }
+    /* inputModal: เมื่อ keyboard เปิด viewport หด → จัดชิดบน + scroll ได้ กันปุ่มหลุดใต้คีย์บอร์ด
+       ใช้ --kb-inset จาก JS (visualViewport) ดัน content ขึ้นเหนือคีย์บอร์ด */
+    #inputModal {
+      align-items: flex-start;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: max(48px, env(safe-area-inset-top));
+      padding-bottom: calc(24px + var(--kb-inset, 0px));
+    }
+    #inputModal .modal-box { margin: auto 0; }
     #actionSheet .modal-box { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .modal-overlay { background: color-mix(in srgb, #000 50%, transparent); backdrop-filter: blur(4px); }
     html.dark .modal-overlay { background: color-mix(in srgb, #000 65%, transparent); }
@@ -4256,7 +4282,9 @@
 
     submitBtn.onclick = () => {
       const val = (document.getElementById('modalInput1').value || '').trim();
-      if (val !== tripName) {
+      // normalize ช่องว่างซ้ำ + trim ทั้งสองฝั่ง กันกรณีชื่อทริปมีช่องว่างเกินที่มองไม่เห็น
+      const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+      if (norm(val) !== norm(tripName)) {
         showToast(isEn ? 'Name does not match' : 'ชื่อทริปไม่ตรง');
         return;
       }
