@@ -3,19 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>TripSplit Pro</title>
+  <title>TripSplit — หารค่าใช้จ่ายทริปกับเพื่อน</title>
+
+  <!-- SEO / Link preview -->
+  <meta name="description" content="แอปหารค่าใช้จ่ายทริปกับเพื่อน บันทึกง่าย คำนวณให้อัตโนมัติ รู้ทันทีว่าใครต้องจ่ายใครเท่าไหร่ รองรับหลายสกุลเงิน ใช้ฟรี ออฟไลน์ได้">
+  <meta property="og:title" content="TripSplit">
+  <meta property="og:description" content="หารค่าใช้จ่ายทริปกับเพื่อน บันทึกง่าย คำนวณให้อัตโนมัติ รู้ทันทีว่าใครจ่ายใครเท่าไหร่">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="th_TH">
+  <meta property="og:site_name" content="TripSplit">
+  <meta property="og:image" content="https://toast-bkk.github.io/TripSplit/icon-512.png">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+  <meta property="og:image:alt" content="TripSplit">
+  <meta property="og:url" content="https://toast-bkk.github.io/TripSplit/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="TripSplit">
+  <meta name="twitter:description" content="หารค่าใช้จ่ายทริปกับเพื่อน บันทึกง่าย คำนวณให้อัตโนมัติ รู้ทันทีว่าใครจ่ายใครเท่าไหร่">
+  <meta name="twitter:image" content="https://toast-bkk.github.io/TripSplit/icon-512.png">
 
   <!-- PWA / Add to Home Screen support -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TripSplit">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#c46a2b">
+  <meta name="theme-color" content="#161412" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#faf7f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#faf7f2">
   <!-- Inline SVG icon for home screen -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><defs><linearGradient id='g1' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%23e8884a'/><stop offset='50%25' stop-color='%23c46a2b'/><stop offset='100%25' stop-color='%239a4a18'/></linearGradient><radialGradient id='g2' cx='0.3' cy='0.2' r='0.8'><stop offset='0%25' stop-color='white' stop-opacity='0.35'/><stop offset='60%25' stop-color='white' stop-opacity='0'/></radialGradient></defs><rect width='180' height='180' rx='42' fill='url(%23g1)'/><rect width='180' height='180' rx='42' fill='url(%23g2)'/><circle cx='65' cy='74' r='34' fill='white' fill-opacity='0.92'/><circle cx='115' cy='74' r='34' fill='white' fill-opacity='0.62'/><circle cx='90' cy='118' r='34' fill='white' fill-opacity='0.75'/></svg>">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g1' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%23e8884a'/><stop offset='100%25' stop-color='%239a4a18'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g1)'/><circle cx='11.5' cy='13' r='6' fill='white' fill-opacity='0.92'/><circle cx='20.5' cy='13' r='6' fill='white' fill-opacity='0.6'/><circle cx='16' cy='21' r='6' fill='white' fill-opacity='0.75'/></svg>">
 
   <!-- PWA Manifest -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
   <link rel="manifest" href="manifest.json">
 
   <!-- Set --app-height EARLY: ก่อน CSS โหลด เพื่อกัน iOS Safari render รอบแรกผิด
@@ -23,17 +44,53 @@
   <script>
     (function setAppHeight() {
       function update() {
-        // window.innerHeight = visual viewport height (ไม่รวม Dynamic Island/home indicator)
         document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
       }
       update();
       window.addEventListener('resize', update);
       window.addEventListener('orientationchange', () => setTimeout(update, 150));
       if (window.visualViewport) {
-        // ตอน keyboard เปิด visualViewport.height จะลด — แต่เราอยากให้ body คงสูง
-        // ใช้ window.innerHeight (ไม่ใช่ visualViewport.height) — innerHeight คงที่เมื่อ keyboard เปิด
         window.visualViewport.addEventListener('resize', update);
       }
+    })();
+  </script>
+
+  <!-- Apply theme BEFORE CSS/paint → กัน flash โหมดผิด (FOUC) ตอนโหลด -->
+  <script>
+    (function applyEarlyTheme() {
+      try {
+        var saved = localStorage.getItem('trip_theme'); // 'light' | 'dark' | 'system' | null
+        var isDark;
+        if (saved === 'dark') isDark = true;
+        else if (saved === 'light') isDark = false;
+        else isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; // 'system' หรือยังไม่เคยตั้ง
+        if (isDark) document.documentElement.classList.add('dark');
+        var meta = document.querySelector('meta[name="theme-color"]:not([media])');
+        if (meta) meta.content = isDark ? '#161412' : '#faf7f2';
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Track visual viewport → ให้ modal ที่มี input จัดกึ่งกลางในพื้นที่เหนือคีย์บอร์ดเสมอ -->
+  <script>
+    (function trackViewport() {
+      var vv = window.visualViewport;
+      var root = document.documentElement;
+      function update() {
+        if (vv) {
+          root.style.setProperty('--vv-height', vv.height + 'px');
+          root.style.setProperty('--vv-top', vv.offsetTop + 'px');
+        } else {
+          root.style.setProperty('--vv-height', window.innerHeight + 'px');
+          root.style.setProperty('--vv-top', '0px');
+        }
+      }
+      if (vv) {
+        vv.addEventListener('resize', update);
+        vv.addEventListener('scroll', update);
+      }
+      window.addEventListener('resize', update);
+      update();
     })();
   </script>
 
@@ -164,6 +221,17 @@
     [data-theme="dark"] .splash-text { color: #e8884a; }
 
     /* ===== Theme Variables ===== */
+    /* Smooth transition ตอนสลับธีม — เฉพาะ property ที่เกี่ยวกับสี
+       (.theme-transition จะถูกถอดออกชั่วคราวตอนโหลดครั้งแรก เพื่อกัน flash) */
+    .theme-transition .surface,
+    .theme-transition .surface-2,
+    .theme-transition .surface-3,
+    .theme-transition .input-themed,
+    .theme-transition .header-icon-btn,
+    .theme-transition .border-themed,
+    .theme-transition .glass-nav {
+      transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
     :root {
       /* Warm tone light theme — สบายตา ไม่หนักเหมือนเทาเย็น */
       --bg: #faf7f2;
@@ -224,7 +292,10 @@
       overscroll-behavior: none; /* กัน bounce ของ body */
     }
     html {
+      /* ชดเชยความสูงที่หายไปด้านบนเมื่อ black-translucent ดันเอกสารขึ้นใต้ status bar
+         กันแถบ/ช่องว่างโผล่ด้านล่างในโหมด PWA standalone */
       height: 100%;
+      min-height: calc(100% + env(safe-area-inset-top));
     }
     body {
       font-family: 'IBM Plex Sans Thai', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -235,11 +306,12 @@
       /* layout: header (auto) + content (1fr) + nav (auto) */
       display: flex;
       flex-direction: column;
-      /* iOS Safari: ใช้ค่าจาก JS (--app-height) เพื่อกัน initial render ผิด
-         fallback: 100dvh → 100vh → -webkit-fill-available */
+      /* black-translucent ดันเอกสารขึ้นใต้ status bar → ชดเชยที่ html (min-height)
+         ใช้ height ชัดให้ flex 1fr ทำงาน + min-height กันเตี้ย */
+      position: relative;
       height: 100vh;
       height: 100dvh;
-      height: var(--app-height, 100dvh);
+      min-height: 100dvh;
     }
 
     /* ===== Scroll container — เลื่อนได้เฉพาะตรงนี้ ===== */
@@ -352,10 +424,6 @@
       100% { background-position: -100% 0; }
     }
 
-    /* เมื่อ offline banner แสดงอยู่ banner จะเว้น safe-area-inset-top ให้แล้ว
-       header จึงต้องเลิกเว้นซ้ำ ไม่งั้นเกิดช่องว่างดับเบิลดันทุกอย่างลงมา */
-    body.offline-active { --header-safe-top: 0px; }
-
     /* ===== App Header ===== */
     .app-header {
       flex-shrink: 0;
@@ -458,7 +526,7 @@
       backdrop-filter: blur(14px) saturate(140%);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
       border-top: 1px solid var(--border);
-      padding-bottom: env(safe-area-inset-bottom);
+      padding-bottom: max(6px, calc(env(safe-area-inset-bottom) * 0.5));
     }
 
     /* ===== Page View ===== */
@@ -474,7 +542,8 @@
 
     @keyframes pageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    @keyframes slideDown { from { transform: translateY(-16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes toastBump { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
     @keyframes scaleIn { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 60% { transform: scale(1.03); } 100% { transform: scale(1); opacity: 1; } }
@@ -560,14 +629,105 @@
     /* override .nav-item.active .nav-icon-wrap for FAB (since FAB doesn't use nav-icon-wrap) */
     .nav-fab.active .nav-icon-wrap { background: transparent; transform: none; }
 
+    /* ===== Onboarding (วิธีใช้งาน) ===== */
+    #onboarding {
+      position: fixed; inset: 0; z-index: 80;
+      display: none;
+      background: var(--bg);
+      flex-direction: column;
+      height: var(--vv-height, 100dvh);
+      top: var(--vv-top, 0px);
+    }
+    #onboarding.show { display: flex; }
+    .ob-skip {
+      position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; z-index: 2;
+      padding: 6px 14px; border-radius: 999px;
+      background: var(--surface-2); color: var(--text-2);
+      font-size: 13px; font-weight: 600;
+      border: 1px solid var(--border);
+    }
+    .ob-track {
+      flex: 1 1 auto; min-height: 0;
+      display: flex;
+      overflow-x: auto; overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .ob-track::-webkit-scrollbar { display: none; }
+    .ob-slide {
+      flex: 0 0 100%; width: 100%;
+      scroll-snap-align: center;
+      display: flex; flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 32px 32px 16px;
+      gap: 8px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* เนื้อหาในสไลด์: กึ่งกลางเมื่อสั้น, เลื่อนได้เมื่อยาว */
+    .ob-slide > * { flex-shrink: 0; }
+    .ob-slide > :first-child { margin-top: auto; }
+    .ob-slide > :last-child { margin-bottom: auto; }
+    .ob-icon {
+      width: 96px; height: 96px; border-radius: 28px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      font-size: 44px;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 18%, var(--surface)), color-mix(in srgb, var(--accent) 14%, var(--surface)));
+      box-shadow: var(--shadow-lg);
+      animation: obIconPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes obIconPop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .ob-title { font-size: 22px; font-weight: 800; color: var(--text); line-height: 1.3; }
+    .ob-desc { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 320px; }
+    .ob-footer {
+      flex-shrink: 0;
+      padding: 16px 24px calc(24px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+    }
+    .ob-dots { display: flex; gap: 8px; }
+    .ob-dot {
+      width: 8px; height: 8px; border-radius: 999px;
+      background: var(--surface-3);
+      transition: width 0.3s, background 0.3s;
+    }
+    .ob-dot.active { width: 24px; background: var(--primary); }
+    .ob-next {
+      width: 100%; max-width: 360px;
+      padding: 14px; border-radius: 16px;
+      background: var(--primary); color: var(--primary-text);
+      font-size: 16px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--primary) 55%, transparent);
+      transition: transform 0.1s, background 0.15s;
+    }
+    .ob-next:active { transform: scale(0.97); }
+    .ob-trip-active { border-color: var(--primary) !important; background: var(--primary-soft) !important; }
+    .ob-opt-row { display: flex; gap: 8px; }
+    .ob-opt {
+      flex: 1; padding: 10px 8px; border-radius: 12px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-2); font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .ob-opt-active { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+
     /* ===== Toast ===== */
-    #toastContainer { position: fixed; top: 60px; left: 0; right: 0; z-index: 9999; pointer-events: none; }
+    #toastContainer {
+      position: fixed; top: 60px; left: 0; right: 0; z-index: 9999;
+      pointer-events: none;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 12px 16px 0;
+    }
     .toast {
-      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
       animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       box-shadow: var(--shadow-lg);
       pointer-events: auto;
       max-width: calc(100% - 32px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
     /* ===== Checkbox ===== */
@@ -589,6 +749,20 @@
 
     /* ===== Modal ===== */
     .modal-box { animation: scaleIn 0.28s cubic-bezier(0.16, 1, 0.3, 1); background: var(--surface); color: var(--text); }
+    /* inputModal: ยึดความสูงตาม visual viewport (พื้นที่ที่เห็นจริงเหนือคีย์บอร์ด)
+       เพื่อจัดกึ่งกลาง + กันปุ่มหลุดใต้คีย์บอร์ด/แถบเมนูล่าง */
+    #inputModal {
+      align-items: center;
+      z-index: 90; /* สูงกว่า onboarding (80) เพื่อให้สร้างทริปจากออนบอร์ดดิ้งได้ */
+      height: var(--vv-height, 100dvh);
+      top: var(--vv-top, 0px);
+      bottom: auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: 16px;
+      padding-bottom: 16px;
+    }
+    #inputModal .modal-box { margin: auto 0; }
     #actionSheet .modal-box { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .modal-overlay { background: color-mix(in srgb, #000 50%, transparent); backdrop-filter: blur(4px); }
     html.dark .modal-overlay { background: color-mix(in srgb, #000 65%, transparent); }
@@ -1658,6 +1832,19 @@
 </head>
 <body>
 
+<!-- ===== Onboarding (วิธีใช้งาน) — สร้างสไลด์ด้วย JS ===== -->
+<div id="onboarding" aria-hidden="true">
+  <button class="ob-skip" id="obSkip" onclick="obSkipToActions()" data-i18n="ob_skip">ข้าม</button>
+  <div class="ob-track" id="obTrack"></div>
+  <div class="ob-footer">
+    <div class="ob-dots" id="obDots"></div>
+    <button class="ob-next" id="obNext" onclick="onboardingNext()">
+      <span id="obNextText" data-i18n="ob_next">ถัดไป</span>
+      <i data-lucide="arrow-right" class="h-4 w-4" id="obNextIcon"></i>
+    </button>
+  </div>
+</div>
+
 <!-- ===== Splash Loading Screen ===== -->
 <div id="splashScreen" class="splash-screen">
   <div class="splash-content">
@@ -1706,7 +1893,7 @@
 </div>
 
 <!-- ===== Header ===== -->
-<header class="app-header" style="padding-top: calc(0.5rem + var(--header-safe-top, env(safe-area-inset-top, 0px)));">
+<header class="app-header" style="padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));">
   <button onclick="toggleTripDropdown()" class="trip-pill" aria-label="เลือกทริป">
     <span class="trip-pill-logo">
       <svg width="22" height="22" viewBox="0 0 32 32" style="display:block;">
@@ -1728,8 +1915,8 @@
       <option value="">กำลังโหลด...</option>
     </select>
   </button>
-  <button onclick="toggleTheme()" class="header-icon-btn" id="themeToggleBtn" aria-label="สลับโหมด">
-    <i data-lucide="moon" class="h-[18px] w-[18px]" id="themeIcon"></i>
+  <button onclick="toggleTheme()" class="header-icon-btn" id="themeToggleBtn" aria-label="สลับโหมดมืด/สว่าง/ตามระบบ">
+    <i data-lucide="monitor" class="h-[18px] w-[18px]" id="themeIcon"></i>
   </button>
 </header>
 
@@ -2223,9 +2410,14 @@
         <span class="text-xs accent-bg-soft px-2 py-0.5 rounded-full font-semibold" id="langBadge">ไทย</span>
       </button>
       <button onclick="toggleTheme()" class="w-full flex items-center gap-3 p-2.5 rounded-lg surface-2 text-sm">
-        <i data-lucide="palette" class="h-4 w-4 text-soft shrink-0"></i>
+        <i data-lucide="monitor" class="h-4 w-4 text-soft shrink-0" id="navThemeIcon"></i>
         <span class="font-medium text-main flex-1 text-left" data-i18n="settings_theme">ธีม / โหมดมืด</span>
         <span class="text-xs surface-3 px-2 py-0.5 rounded-full font-semibold" id="themeBadge">Light</span>
+      </button>
+      <button onclick="startOnboarding(true)" class="w-full flex items-center gap-3 p-2.5 rounded-lg surface-2 text-sm">
+        <i data-lucide="help-circle" class="h-4 w-4 text-soft shrink-0"></i>
+        <span class="font-medium text-main flex-1 text-left" data-i18n="settings_howto">วิธีใช้งาน</span>
+        <i data-lucide="chevron-right" class="h-4 w-4 text-muted"></i>
       </button>
     </div>
   </div>
@@ -2271,7 +2463,7 @@
   const I18N = {
     th: {
       // App
-      app_title: 'TripSplit Pro',
+      app_title: 'TripSplit',
       loading: 'กำลังโหลด...',
       new_trip: 'ทริปใหม่',
       mode: 'โหมด',
@@ -2285,6 +2477,32 @@
       settings_trip: 'ทริป',
       settings_app: 'แอป',
       settings_theme: 'ธีม / โหมดมืด',
+      settings_howto: 'วิธีใช้งาน',
+      ob_skip: 'ข้าม',
+      ob_next: 'ถัดไป',
+      ob_start: 'เริ่มใช้งาน',
+      ob_t1_title: 'ยินดีต้อนรับสู่ TripSplit',
+      ob_t1_desc: 'แอปหารค่าใช้จ่ายทริปกับเพื่อน บันทึกง่าย คำนวณให้อัตโนมัติ รู้ทันทีว่าใครต้องจ่ายใครเท่าไหร่',
+      ob_t2_title: 'บันทึกรายจ่าย',
+      ob_t2_desc: 'กดปุ่ม + ตรงกลาง ใส่ชื่อรายการ จำนวนเงิน เลือกคนจ่าย แล้วติ๊กว่าใครร่วมหารบ้าง รองรับหลายสกุลเงินด้วย',
+      ob_t3_title: 'หารได้หลายแบบ',
+      ob_t3_desc: 'หารเท่ากันทุกคน หารตามสัดส่วน หรือระบุยอดเองรายคน เลือกได้ตามจริงในแต่ละบิล',
+      ob_t4_title: 'เคลียร์หนี้ง่ายที่สุด',
+      ob_t4_desc: 'แท็บ "เคลียร์" จะคำนวณวิธีโอนที่สั้นที่สุดให้ ว่าใครโอนให้ใครเท่าไหร่ จบหนี้ด้วยการโอนน้อยครั้งที่สุด',
+      ob_t5_title: 'เงินกองกลาง (ถ้าต้องการ)',
+      ob_t5_desc: 'เปิดใช้ในหน้าตั้งค่า ลงขันเงินกองกลางก่อนทริป แล้วจ่ายจากกองนี้ เหมาะกับทริปที่ออกเงินรวมกัน',
+      ob_a2hs_title: 'เพิ่มไปยังหน้าจอโฮม',
+      ob_trip_title: 'เริ่มทริปแรกของคุณ',
+      ob_trip_desc: 'เลือกทริปที่มีอยู่ หรือสร้างทริปใหม่เพื่อเริ่มบันทึกค่าใช้จ่าย',
+      ob_trip_new: 'สร้างทริปใหม่',
+      ob_prefs_title: 'ตั้งค่าก่อนเริ่ม',
+      ob_prefs_desc: 'เลือกภาษาและธีมที่คุณชอบ เปลี่ยนภายหลังได้ในหน้าตั้งค่า',
+      ob_prefs_lang: 'ภาษา',
+      ob_prefs_theme: 'ธีม',
+      ob_theme_light: 'สว่าง',
+      ob_theme_dark: 'มืด',
+      ob_theme_system: 'ตามระบบ',
+      ob_creating: 'กำลังเตรียมทริป...',
       settle_page_title: 'ยอดต้องเคลียร์',
       settle_page_subtitle: 'ยอดของแต่ละคน และวิธีเคลียร์หนี้ที่สั้นที่สุด',
       mark_paid: 'จ่ายแล้ว',
@@ -2419,7 +2637,7 @@
       refreshing: 'กำลังรีเฟรช...',
     },
     en: {
-      app_title: 'TripSplit Pro',
+      app_title: 'TripSplit',
       loading: 'Loading...',
       new_trip: 'New Trip',
       mode: 'Theme',
@@ -2432,6 +2650,32 @@
       settings_trip: 'Trip',
       settings_app: 'App',
       settings_theme: 'Theme / Dark mode',
+      settings_howto: 'How to use',
+      ob_skip: 'Skip',
+      ob_next: 'Next',
+      ob_start: 'Get started',
+      ob_t1_title: 'Welcome to TripSplit',
+      ob_t1_desc: 'Split trip expenses with friends. Log them easily, let the app do the math, and see instantly who owes whom.',
+      ob_t2_title: 'Log an expense',
+      ob_t2_desc: 'Tap the + button, enter what it was and how much, pick who paid, then check who splits it. Multiple currencies supported.',
+      ob_t3_title: 'Split it your way',
+      ob_t3_desc: 'Split evenly, by shares, or set custom amounts per person — whatever fits each bill.',
+      ob_t4_title: 'Settle up the easy way',
+      ob_t4_desc: 'The "Settle" tab works out the simplest transfers — who pays whom and how much — clearing debts in the fewest payments.',
+      ob_t5_title: 'Shared pool (optional)',
+      ob_t5_desc: 'Turn it on in Settings to pool money before the trip and pay from it — great for groups that chip in together.',
+      ob_a2hs_title: 'Add to Home Screen',
+      ob_trip_title: 'Start your first trip',
+      ob_trip_desc: 'Pick an existing trip or create a new one to start logging expenses.',
+      ob_trip_new: 'Create new trip',
+      ob_prefs_title: 'Set up before you start',
+      ob_prefs_desc: 'Pick your language and theme. You can change these later in Settings.',
+      ob_prefs_lang: 'Language',
+      ob_prefs_theme: 'Theme',
+      ob_theme_light: 'Light',
+      ob_theme_dark: 'Dark',
+      ob_theme_system: 'System',
+      ob_creating: 'Setting up your trip...',
       settle_page_title: 'Settle Up',
       settle_page_subtitle: 'Each person\'s balance and the shortest way to settle',
       mark_paid: 'Mark paid',
@@ -2582,6 +2826,244 @@
     if (window.appState && window.appState.trips) updateAllUI();
   }
 
+  // ============ Onboarding (วิธีใช้งาน) ============
+  const OB_BASE = [
+    { icon: '👋', t: 'ob_t1_title', d: 'ob_t1_desc' },
+    { icon: '➕', t: 'ob_t2_title', d: 'ob_t2_desc' },
+    { icon: '🧮', t: 'ob_t3_title', d: 'ob_t3_desc' },
+    { icon: '🤝', t: 'ob_t4_title', d: 'ob_t4_desc' },
+    { icon: '🏦', t: 'ob_t5_title', d: 'ob_t5_desc' },
+  ];
+  let OB_SLIDES = [];
+  let _obIndex = 0;
+
+  // ตรวจว่ารันแบบติดตั้งแล้ว (standalone) หรือยังเปิดในเบราว์เซอร์
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+  function isIOS() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  }
+
+  // สร้างเนื้อหาสไลด์ "เพิ่มไปหน้าจอโฮม" ตาม iOS/Android
+  function obA2hsContent() {
+    const en = getLang() === 'en';
+    if (isIOS()) {
+      return en
+        ? 'Tap the Share button in Safari, then choose "Add to Home Screen" — open it like a real app, works offline too.'
+        : 'กดปุ่มแชร์ในซาฟารี แล้วเลือก "เพิ่มไปยังหน้าจอโฮม" เปิดใช้เหมือนแอปจริง ใช้ออฟไลน์ได้ด้วย';
+    }
+    return en
+      ? 'Open the browser menu (⋮) and tap "Install app" or "Add to Home screen" to use it like a real app, even offline.'
+      : 'เปิดเมนูเบราว์เซอร์ (⋮) แล้วกด "ติดตั้งแอป" หรือ "เพิ่มไปยังหน้าจอโฮม" เพื่อใช้เหมือนแอปจริง ใช้ออฟไลน์ได้';
+  }
+
+  function renderOnboarding() {
+    const track = document.getElementById('obTrack');
+    const dots = document.getElementById('obDots');
+    if (!track || !dots) return;
+    track.innerHTML = OB_SLIDES.map(s => {
+      if (s.type === 'prefs') {
+        const lang = getLang();
+        const pref = (typeof getThemePref === 'function') ? getThemePref() : 'system';
+        const langOpt = (code, label) => `<button onclick="obSetLang('${code}')" class="ob-opt${lang === code ? ' ob-opt-active' : ''}">${label}</button>`;
+        const themeOpt = (val, icon, label) => `<button onclick="obSetTheme('${val}')" class="ob-opt${pref === val ? ' ob-opt-active' : ''}"><i data-lucide="${icon}" class="h-4 w-4"></i> ${label}</button>`;
+        return `<div class="ob-slide">
+          <div class="ob-icon">⚙️</div>
+          <div class="ob-title">${t('ob_prefs_title')}</div>
+          <div class="ob-desc">${t('ob_prefs_desc')}</div>
+          <div class="w-full max-w-[320px] mt-4 space-y-4">
+            <div>
+              <div class="text-[11px] font-semibold text-soft uppercase tracking-wider mb-1.5 text-left">${t('ob_prefs_lang')}</div>
+              <div class="ob-opt-row">${langOpt('th', 'ไทย')}${langOpt('en', 'English')}</div>
+            </div>
+            <div>
+              <div class="text-[11px] font-semibold text-soft uppercase tracking-wider mb-1.5 text-left">${t('ob_prefs_theme')}</div>
+              <div class="ob-opt-row">${themeOpt('light', 'sun', t('ob_theme_light'))}${themeOpt('dark', 'moon', t('ob_theme_dark'))}${themeOpt('system', 'monitor', t('ob_theme_system'))}</div>
+            </div>
+          </div>
+        </div>`;
+      }
+      if (s.type === 'a2hs') {
+        return `<div class="ob-slide">
+          <div class="ob-icon">📲</div>
+          <div class="ob-title">${t('ob_a2hs_title')}</div>
+          <div class="ob-desc">${obA2hsContent()}</div>
+        </div>`;
+      }
+      if (s.type === 'trip') {
+        return `<div class="ob-slide">
+          <div class="ob-icon">🧳</div>
+          <div class="ob-title">${t('ob_trip_title')}</div>
+          <div class="ob-desc">${t('ob_trip_desc')}</div>
+          <div id="obTripPicker" class="w-full max-w-[320px] mt-4 space-y-2"></div>
+        </div>`;
+      }
+      return `<div class="ob-slide">
+        <div class="ob-icon">${s.icon}</div>
+        <div class="ob-title">${t(s.t)}</div>
+        <div class="ob-desc">${t(s.d)}</div>
+      </div>`;
+    }).join('');
+    dots.innerHTML = OB_SLIDES.map((_, i) => `<div class="ob-dot${i === 0 ? ' active' : ''}"></div>`).join('');
+    renderObTripPicker();
+  }
+
+  // รายการทริปให้เลือก + ปุ่มสร้างใหม่ (เฉพาะสไลด์ trip)
+  function renderObTripPicker(selectedId) {
+    const box = document.getElementById('obTripPicker');
+    if (!box) return;
+    const trips = (appState && appState.trips) || [];
+    // ใช้ selectedId ที่ส่งมา (เลือกทันที) ก่อน ถ้าไม่มีค่อยใช้ค่าจริงจาก state
+    const activeId = selectedId != null ? selectedId : (appState && appState.activeTripId);
+    const rows = trips.map(tr => `
+      <button onclick="obSelectTrip('${tr.id}')" class="w-full flex items-center gap-2.5 p-3 rounded-xl surface-2 border border-themed text-left ${String(tr.id) === String(activeId) ? 'ob-trip-active' : ''}">
+        <i data-lucide="map-pin" class="h-4 w-4 accent-text shrink-0"></i>
+        <span class="font-medium text-main flex-1 truncate">${escapeHtml(String(tr.name))}</span>
+        ${String(tr.id) === String(activeId) ? '<i data-lucide="check" class="h-4 w-4 accent-text shrink-0"></i>' : ''}
+      </button>`).join('');
+    box.innerHTML = rows + `
+      <button onclick="obCreateTrip()" class="w-full flex items-center justify-center gap-2 p-3 rounded-xl accent-bg-soft border border-themed border-dashed font-semibold text-main">
+        <i data-lucide="plus-circle" class="h-4 w-4 accent-text"></i> ${t('ob_trip_new')}
+      </button>`;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function obSelectTrip(id) {
+    // อัปเดตไฮไลต์ทันที (optimistic) แล้วค่อยโหลดข้อมูลเบื้องหลัง
+    renderObTripPicker(id);
+    if (String(id) !== String(appState.activeTripId)) {
+      loadInitialData(id);
+    }
+  }
+
+  // เลือกภาษา/ธีมจากสไลด์ prefs — เปลี่ยนทันทีแล้ว re-render สไลด์ปัจจุบัน
+  function obSetLang(code) {
+    setLang(code);
+    renderOnboarding();          // ข้อความทุกสไลด์เปลี่ยนตามภาษา
+    obGoTo(_obIndex, false);     // คงอยู่สไลด์เดิม
+    updateObFooter();
+  }
+  function obSetTheme(val) {
+    if (typeof applyTheme === 'function') {
+      localStorage.setItem('trip_theme', val);
+      applyTheme(val);
+    }
+    renderOnboarding();
+    obGoTo(_obIndex, false);
+    updateObFooter();
+  }
+
+  // เลื่อนไปสไลด์ index ที่กำหนด
+  function obGoTo(i, smooth = true) {
+    const track = document.getElementById('obTrack');
+    _obIndex = Math.max(0, Math.min(i, OB_SLIDES.length - 1));
+    if (track) track.scrollTo({ left: track.clientWidth * _obIndex, behavior: smooth ? 'smooth' : 'auto' });
+    updateObFooter();
+  }
+
+  // ข้าม → กระโดดไปสไลด์ action แรก (a2hs หรือ trip) ไม่ปิดทั้งหมด
+  function obSkipToActions() {
+    const i = OB_SLIDES.findIndex(s => s.type === 'a2hs' || s.type === 'trip');
+    if (i === -1) { finishOnboarding(); return; }
+    obGoTo(i);
+  }
+
+  // สร้างทริปใหม่จากในออนบอร์ดดิ้ง → ใช้ inputModal เดิม (จะลอยเหนือ onboarding ด้วย z สูงกว่า)
+  function obCreateTrip() {
+    openNewTripModal();
+  }
+
+  // เปิดหน้าเลือกทริปแบบสไลด์เดียว (ใช้หลังลบทริป) — ไม่มีสไลด์สอน/ตั้งค่า
+  function openTripPicker() {
+    const ob = document.getElementById('onboarding');
+    if (!ob) return;
+    OB_SLIDES = [{ type: 'trip' }];
+    _obIndex = 0;
+    renderOnboarding();
+    ob.classList.add('show');
+    ob.setAttribute('aria-hidden', 'false');
+    const track = document.getElementById('obTrack');
+    if (track) {
+      track.scrollTo({ left: 0 });
+      track.onscroll = null; // สไลด์เดียว ไม่ต้องซิงก์
+    }
+    updateObFooter();
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function updateObFooter() {
+    const dots = document.querySelectorAll('#obDots .ob-dot');
+    dots.forEach((d, i) => d.classList.toggle('active', i === _obIndex));
+    const isLast = _obIndex === OB_SLIDES.length - 1;
+    const txt = document.getElementById('obNextText');
+    const icon = document.getElementById('obNextIcon');
+    if (txt) txt.innerText = isLast ? t('ob_start') : t('ob_next');
+    if (icon) {
+      icon.setAttribute('data-lucide', isLast ? 'check' : 'arrow-right');
+      if (window.lucide) lucide.createIcons();
+    }
+    const skip = document.getElementById('obSkip');
+    if (skip) {
+      // ซ่อนปุ่มข้ามเมื่ออยู่ที่สไลด์ action (a2hs/trip) แล้ว — ไม่มีอะไรให้ข้ามต่อ
+      const firstAction = OB_SLIDES.findIndex(s => s.type === 'a2hs' || s.type === 'trip');
+      const atActions = firstAction !== -1 && _obIndex >= firstAction;
+      skip.style.visibility = (isLast || atActions) ? 'hidden' : 'visible';
+    }
+  }
+
+  // force = เปิดจากหน้าตั้งค่า → ไม่แสดงสไลด์เลือกทริป และไม่เช็คว่าเคยดูแล้ว
+  function startOnboarding(force = false) {
+    if (!force && localStorage.getItem('trip_onboarded') === '1') return;
+    const ob = document.getElementById('onboarding');
+    if (!ob) return;
+    // ประกอบสไลด์: prefs (ภาษา/ธีม) + base + a2hs (ถ้ายังไม่ติดตั้ง) + trip (เฉพาะครั้งแรก)
+    OB_SLIDES = [{ type: 'prefs' }].concat(OB_BASE);
+    if (!isStandalone()) OB_SLIDES.push({ type: 'a2hs' });
+    if (!force) OB_SLIDES.push({ type: 'trip' });
+    _obIndex = 0;
+    renderOnboarding();
+    ob.classList.add('show');
+    ob.setAttribute('aria-hidden', 'false');
+    const track = document.getElementById('obTrack');
+    if (track) {
+      track.scrollTo({ left: 0 });
+      track.onscroll = () => {
+        const w = track.clientWidth || 1;
+        const i = Math.round(track.scrollLeft / w);
+        if (i !== _obIndex) { _obIndex = i; updateObFooter(); }
+      };
+    }
+    updateObFooter();
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function onboardingNext() {
+    const track = document.getElementById('obTrack');
+    if (_obIndex >= OB_SLIDES.length - 1) {
+      finishOnboarding();
+      return;
+    }
+    _obIndex++;
+    if (track) track.scrollTo({ left: track.clientWidth * _obIndex, behavior: 'smooth' });
+    updateObFooter();
+  }
+
+  function finishOnboarding() {
+    localStorage.setItem('trip_onboarded', '1');
+    const ob = document.getElementById('onboarding');
+    if (!ob) return;
+    ob.style.opacity = '0';
+    ob.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => {
+      ob.classList.remove('show');
+      ob.setAttribute('aria-hidden', 'true');
+      ob.style.opacity = '';
+      ob.style.transition = '';
+    }, 300);
+  }
+
+
   // ============ STATE ============
   let appState = {
     trips: [],
@@ -2671,41 +3153,56 @@
   }
 
   // ============ THEME ============
-  function getCurrentTheme() {
-    // ถ้ามี user pref ใน localStorage ใช้ค่านั้น
+  // โหมดที่ผู้ใช้ตั้งไว้: 'light' | 'dark' | 'system'
+  function getThemePref() {
     const saved = localStorage.getItem('trip_theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    // ครั้งแรกที่เปิด: ใช้ตามโหมดมืด/สว่างของระบบ
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    return 'light';
+    if (saved === 'dark' || saved === 'light' || saved === 'system') return saved;
+    return 'system'; // default = ตามระบบ
   }
 
-  function applyTheme(theme) {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      const icon = document.getElementById('themeIcon');
-      if (icon) icon.setAttribute('data-lucide', 'sun');
-      const navIcon = document.getElementById('navThemeIcon');
-      if (navIcon) navIcon.setAttribute('data-lucide', 'sun');
-      lucide.createIcons();
-    } else {
-      document.documentElement.classList.remove('dark');
-      const icon = document.getElementById('themeIcon');
-      if (icon) icon.setAttribute('data-lucide', 'moon');
-      const navIcon = document.getElementById('navThemeIcon');
-      if (navIcon) navIcon.setAttribute('data-lucide', 'moon');
-      lucide.createIcons();
-    }
-    // Update meta theme-color
-    let meta = document.querySelector('meta[name="theme-color"]');
+  // เช็คว่าระบบปฏิบัติการตั้งเป็นมืดไหม
+  function systemPrefersDark() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  // theme ที่ "ใช้จริง" หลัง resolve โหมด system → 'light' | 'dark'
+  function getResolvedTheme() {
+    const pref = getThemePref();
+    if (pref === 'system') return systemPrefersDark() ? 'dark' : 'light';
+    return pref;
+  }
+
+  // ใช้เพื่อความเข้ากันได้กับโค้ดเดิมที่เรียก getCurrentTheme()
+  function getCurrentTheme() {
+    return getResolvedTheme();
+  }
+
+  function applyTheme(pref) {
+    // pref อาจเป็น light/dark/system — resolve เป็นค่าจริงก่อน
+    const resolved = (pref === 'system')
+      ? (systemPrefersDark() ? 'dark' : 'light')
+      : pref;
+
+    document.documentElement.classList.toggle('dark', resolved === 'dark');
+
+    // ไอคอนปุ่มบน header: system → monitor, dark → sun, light → moon
+    const currentPref = getThemePref();
+    const iconName = currentPref === 'system' ? 'monitor' : (resolved === 'dark' ? 'sun' : 'moon');
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.setAttribute('data-lucide', iconName);
+    const navIcon = document.getElementById('navThemeIcon');
+    if (navIcon) navIcon.setAttribute('data-lucide', iconName);
+    if (window.lucide) lucide.createIcons();
+
+    // Update meta theme-color (ตัวที่ไม่มี media เพื่อไม่ชนกับ media-specific)
+    let meta = document.querySelector('meta[name="theme-color"]:not([media])');
     if (!meta) {
       meta = document.createElement('meta');
       meta.name = 'theme-color';
       document.head.appendChild(meta);
     }
-    meta.content = theme === 'dark' ? '#161412' : '#faf7f2';
+    meta.content = resolved === 'dark' ? '#161412' : '#faf7f2';
+
     // Re-render charts so colors update
     if (categoryChartInstance) {
       setTimeout(renderCharts, 50);
@@ -2714,21 +3211,32 @@
     if (typeof updateSettingsBadges === 'function') updateSettingsBadges();
   }
 
+  // หมุนวน light → dark → system → light ...
   function toggleTheme() {
-    const next = getCurrentTheme() === 'dark' ? 'light' : 'dark';
+    const order = ['light', 'dark', 'system'];
+    const next = order[(order.indexOf(getThemePref()) + 1) % order.length];
     localStorage.setItem('trip_theme', next);
     applyTheme(next);
+    if (typeof showToast === 'function') {
+      const th = getLang() === 'th';
+      const label = next === 'light' ? (th ? 'โหมดสว่าง' : 'Light')
+                  : next === 'dark'  ? (th ? 'โหมดมืด'  : 'Dark')
+                  :                    (th ? 'ตามระบบ'  : 'System');
+      showToast(label, 'info');
+    }
   }
   // Apply theme immediately to avoid flash
-  applyTheme(getCurrentTheme());
+  applyTheme(getThemePref());
+  // เปิด smooth transition หลัง paint เฟรมแรก (กัน flash ตอนโหลด)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => document.body.classList.add('theme-transition'));
+  });
 
-  // ตามระบบต่อ ถ้าผู้ใช้ยังไม่เคยเลือกเอง (ไม่มี trip_theme ใน localStorage)
+  // ตามระบบแบบ real-time เมื่ออยู่ในโหมด 'system'
   if (window.matchMedia) {
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleSchemeChange = (e) => {
-      if (!localStorage.getItem('trip_theme')) {
-        applyTheme(e.matches ? 'dark' : 'light');
-      }
+    const handleSchemeChange = () => {
+      if (getThemePref() === 'system') applyTheme('system');
     };
     if (mql.addEventListener) mql.addEventListener('change', handleSchemeChange);
     else if (mql.addListener) mql.addListener(handleSchemeChange); // Safari เก่า
@@ -2741,6 +3249,24 @@
 
   function showToast(message, type = 'error') {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    // กันข้อความซ้ำ: ถ้ามี toast ข้อความ+ชนิดเดียวกันค้างอยู่ ให้รีเซ็ตเวลานับใหม่แทนสร้างซ้อน
+    const existing = container.querySelector(`.toast[data-msg="${CSS.escape(message)}"][data-type="${type}"]`);
+    if (existing && existing._timer) {
+      clearTimeout(existing._timer);
+      existing._timer = setTimeout(() => dismissToast(existing), 2500);
+      // เด้งเล็กน้อยเพื่อบอกผู้ใช้ว่าเกิดซ้ำ
+      existing.style.animation = 'none';
+      void existing.offsetWidth; // reflow
+      existing.style.animation = 'toastBump 0.3s ease';
+      return;
+    }
+
+    // จำกัดไม่ให้เกิน 3 อันพร้อมกัน — ลบอันเก่าสุดออกก่อน
+    const toasts = container.querySelectorAll('.toast');
+    if (toasts.length >= 3) dismissToast(toasts[0]);
+
     const styleMap = {
       success: { bg: 'var(--success)', color: 'white' },
       error: { bg: 'var(--danger)', color: 'white' },
@@ -2750,16 +3276,23 @@
     const icon = type === 'success' ? 'check' : type === 'info' ? 'info' : 'alert-circle';
     const toast = document.createElement('div');
     toast.className = `toast px-4 py-3 rounded-xl flex items-center gap-2 font-medium text-sm`;
+    toast.setAttribute('data-msg', message);
+    toast.setAttribute('data-type', type);
     toast.style.background = s.bg;
     toast.style.color = s.color;
-    toast.innerHTML = `<i data-lucide="${icon}" class="h-4 w-4"></i> ${escapeHtml(message)}`;
+    toast.innerHTML = `<i data-lucide="${icon}" class="h-4 w-4 shrink-0"></i> <span>${escapeHtml(message)}</span>`;
     container.appendChild(toast);
     lucide.createIcons();
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translate(-50%, -10px)';
-      setTimeout(() => toast.remove(), 300);
-    }, 2500);
+    toast._timer = setTimeout(() => dismissToast(toast), 2500);
+  }
+
+  function dismissToast(toast) {
+    if (!toast || toast._dismissing) return;
+    toast._dismissing = true;
+    if (toast._timer) clearTimeout(toast._timer);
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-10px)';
+    setTimeout(() => toast.remove(), 300);
   }
 
   function escapeHtml(s) {
@@ -2998,6 +3531,8 @@
       splash.classList.add('fade-out');
       // ลบ DOM หลัง transition จบ เพื่อไม่ให้กิน memory
       setTimeout(() => splash.remove(), 600);
+      // แสดงวิธีใช้งานครั้งแรก (เฉพาะถ้ายังไม่เคยดู)
+      startOnboarding(false);
     }, wait);
   }
 
@@ -3747,7 +4282,7 @@
     const amount = parseFloat(amountEl.value);
     const payer = document.getElementById('payer').value;
 
-    if (!payer) return showToast('กรุณาเพิ่มเพื่อนก่อน');
+    if (!payer) return showToast(getLang() === 'en' ? 'Please select who paid first' : 'กรุณาเลือกผู้จ่ายก่อน');
     if (!amount || amount <= 0) return showToast('กรุณากรอกจำนวนเงิน');
 
     const splitDetails = {};
@@ -4031,13 +4566,57 @@
     document.getElementById('inputModalSubmit').onclick = () => {
       const val = document.getElementById('modalInput1').value.trim();
       if (!val) return;
+      // กันชื่อทริปซ้ำ (ไม่สนตัวพิมพ์ใหญ่เล็ก + ช่องว่าง)
+      const normTrip = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
+      if ((appState.trips || []).some(tr => normTrip(tr.name) === normTrip(val))) {
+        showToast(getLang() === 'en' ? 'A trip with this name already exists' : 'มีทริปชื่อนี้แล้ว');
+        return;
+      }
       closeModal('inputModal');
+      const fromOnboarding = (() => {
+        const ob = document.getElementById('onboarding');
+        return ob && ob.classList.contains('show');
+      })();
+      // ถ้าสร้างจากออนบอร์ดดิ้ง → โชว์หน้าโหลดแอปทันทีระหว่างรอ backend
+      if (fromOnboarding) showAppLoading();
       callBackend('addTrip', [val], res => {
         appState = res;
         updateAllUI();
-        showToast('สร้างทริปสำเร็จ', 'success');
+        if (fromOnboarding) {
+          // จบออนบอร์ดดิ้ง + ปิดหน้าโหลด แล้วเข้าหน้าแอปทันที
+          finishOnboarding();
+          hideAppLoading();
+        } else {
+          showToast('สร้างทริปสำเร็จ', 'success');
+        }
       });
     };
+  }
+
+  // หน้าโหลดแอปชั่วคราว (ใช้สไตล์เดียวกับ splash) — แสดงระหว่างรอสร้างทริป
+  function showAppLoading() {
+    let el = document.getElementById('appLoading');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'appLoading';
+      el.className = 'splash-screen';
+      el.innerHTML = `<div class="splash-content">
+        <div class="splash-logo-wrap">
+          <div class="ob-icon" style="margin:0;animation:none;">🧳</div>
+        </div>
+        <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+        <div class="splash-text">${t('ob_creating') || 'กำลังเตรียมทริป...'}</div>
+      </div>`;
+      document.body.appendChild(el);
+    }
+    el.style.display = '';
+    el.classList.remove('fade-out');
+  }
+  function hideAppLoading() {
+    const el = document.getElementById('appLoading');
+    if (!el) return;
+    el.classList.add('fade-out');
+    setTimeout(() => el.remove(), 600);
   }
 
   function openNewFriendModal() {
@@ -4096,8 +4675,11 @@
     if (langBadge) langBadge.innerText = getLang() === 'th' ? 'ไทย' : 'EN';
     const themeBadge = document.getElementById('themeBadge');
     if (themeBadge) {
-      const isDark = document.documentElement.classList.contains('dark');
-      themeBadge.innerText = isDark ? (getLang() === 'th' ? 'มืด' : 'Dark') : (getLang() === 'th' ? 'สว่าง' : 'Light');
+      const pref = (typeof getThemePref === 'function') ? getThemePref() : 'light';
+      const th = getLang() === 'th';
+      themeBadge.innerText = pref === 'light' ? (th ? 'สว่าง' : 'Light')
+                          : pref === 'dark'  ? (th ? 'มืด'   : 'Dark')
+                          :                    (th ? 'ตามระบบ' : 'System');
     }
   }
 
@@ -4112,6 +4694,12 @@
     document.getElementById('inputModalSubmit').onclick = () => {
       const val = document.getElementById('modalInput1').value.trim();
       if (!val) return;
+      // กันชื่อซ้ำกับทริปอื่น (ยกเว้นทริปตัวเอง)
+      const normTrip = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
+      if ((appState.trips || []).some(tr => tr.id !== appState.activeTripId && normTrip(tr.name) === normTrip(val))) {
+        showToast(getLang() === 'en' ? 'A trip with this name already exists' : 'มีทริปชื่อนี้แล้ว');
+        return;
+      }
       closeModal('inputModal');
       callBackend('renameTrip', [appState.activeTripId, val], res => {
         appState = res;
@@ -4173,7 +4761,9 @@
 
     submitBtn.onclick = () => {
       const val = (document.getElementById('modalInput1').value || '').trim();
-      if (val !== tripName) {
+      // normalize ช่องว่างซ้ำ + trim ทั้งสองฝั่ง กันกรณีชื่อทริปมีช่องว่างเกินที่มองไม่เห็น
+      const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+      if (norm(val) !== norm(tripName)) {
         showToast(isEn ? 'Name does not match' : 'ชื่อทริปไม่ตรง');
         return;
       }
@@ -4184,6 +4774,8 @@
         localStorage.setItem('trip_last_id', res.activeTripId);
         updateAllUI();
         showToast(isEn ? 'Trip deleted' : 'ลบทริปเรียบร้อย', 'success');
+        // ลบเสร็จ → เปิดหน้าเลือกทริป
+        openTripPicker();
       });
     };
   }
@@ -5338,7 +5930,6 @@
     const offline = !isOnline();
     if (offline) {
       banner.classList.remove('hidden');
-      document.body.classList.add('offline-active');
       const pending = document.getElementById('pendingCount');
       if (queue.length > 0) {
         pending.classList.remove('hidden');
@@ -5348,7 +5939,6 @@
       }
     } else {
       banner.classList.add('hidden');
-      document.body.classList.remove('offline-active');
     }
   }
 
