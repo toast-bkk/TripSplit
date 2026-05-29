@@ -526,7 +526,7 @@
       backdrop-filter: blur(14px) saturate(140%);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
       border-top: 1px solid var(--border);
-      padding-bottom: max(6px, env(safe-area-inset-bottom));
+      padding-bottom: max(6px, calc(env(safe-area-inset-bottom) * 0.5));
     }
 
     /* ===== Page View ===== */
@@ -1893,7 +1893,7 @@
 </div>
 
 <!-- ===== Header ===== -->
-<header class="app-header" style="padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));">
+<header class="app-header" style="padding-top: calc(0.5rem + env(safe-area-inset-top, 0px) * 0.5);">
   <button onclick="toggleTripDropdown()" class="trip-pill" aria-label="เลือกทริป">
     <span class="trip-pill-logo">
       <svg width="22" height="22" viewBox="0 0 32 32" style="display:block;">
