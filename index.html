@@ -607,6 +607,76 @@
     /* override .nav-item.active .nav-icon-wrap for FAB (since FAB doesn't use nav-icon-wrap) */
     .nav-fab.active .nav-icon-wrap { background: transparent; transform: none; }
 
+    /* ===== Onboarding (วิธีใช้งาน) ===== */
+    #onboarding {
+      position: fixed; inset: 0; z-index: 80;
+      display: none;
+      background: var(--bg);
+      flex-direction: column;
+      height: var(--vv-height, 100dvh);
+      top: var(--vv-top, 0px);
+    }
+    #onboarding.show { display: flex; }
+    .ob-skip {
+      position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; z-index: 2;
+      padding: 6px 14px; border-radius: 999px;
+      background: var(--surface-2); color: var(--text-2);
+      font-size: 13px; font-weight: 600;
+      border: 1px solid var(--border);
+    }
+    .ob-track {
+      flex: 1 1 auto; min-height: 0;
+      display: flex;
+      overflow-x: auto; overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .ob-track::-webkit-scrollbar { display: none; }
+    .ob-slide {
+      flex: 0 0 100%; width: 100%;
+      scroll-snap-align: center;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 32px 32px 16px;
+      gap: 8px;
+    }
+    .ob-icon {
+      width: 96px; height: 96px; border-radius: 28px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      font-size: 44px;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 18%, var(--surface)), color-mix(in srgb, var(--accent) 14%, var(--surface)));
+      box-shadow: var(--shadow-lg);
+      animation: obIconPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes obIconPop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .ob-title { font-size: 22px; font-weight: 800; color: var(--text); line-height: 1.3; }
+    .ob-desc { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 320px; }
+    .ob-footer {
+      flex-shrink: 0;
+      padding: 16px 24px calc(24px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+    }
+    .ob-dots { display: flex; gap: 8px; }
+    .ob-dot {
+      width: 8px; height: 8px; border-radius: 999px;
+      background: var(--surface-3);
+      transition: width 0.3s, background 0.3s;
+    }
+    .ob-dot.active { width: 24px; background: var(--primary); }
+    .ob-next {
+      width: 100%; max-width: 360px;
+      padding: 14px; border-radius: 16px;
+      background: var(--primary); color: var(--primary-text);
+      font-size: 16px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--primary) 55%, transparent);
+      transition: transform 0.1s, background 0.15s;
+    }
+    .ob-next:active { transform: scale(0.97); }
+
     /* ===== Toast ===== */
     #toastContainer {
       position: fixed; top: 60px; left: 0; right: 0; z-index: 9999;
@@ -1724,6 +1794,19 @@
 </head>
 <body>
 
+<!-- ===== Onboarding (วิธีใช้งาน) — สร้างสไลด์ด้วย JS ===== -->
+<div id="onboarding" aria-hidden="true">
+  <button class="ob-skip" id="obSkip" onclick="finishOnboarding()" data-i18n="ob_skip">ข้าม</button>
+  <div class="ob-track" id="obTrack"></div>
+  <div class="ob-footer">
+    <div class="ob-dots" id="obDots"></div>
+    <button class="ob-next" id="obNext" onclick="onboardingNext()">
+      <span id="obNextText" data-i18n="ob_next">ถัดไป</span>
+      <i data-lucide="arrow-right" class="h-4 w-4" id="obNextIcon"></i>
+    </button>
+  </div>
+</div>
+
 <!-- ===== Splash Loading Screen ===== -->
 <div id="splashScreen" class="splash-screen">
   <div class="splash-content">
@@ -2293,6 +2376,11 @@
         <span class="font-medium text-main flex-1 text-left" data-i18n="settings_theme">ธีม / โหมดมืด</span>
         <span class="text-xs surface-3 px-2 py-0.5 rounded-full font-semibold" id="themeBadge">Light</span>
       </button>
+      <button onclick="startOnboarding(true)" class="w-full flex items-center gap-3 p-2.5 rounded-lg surface-2 text-sm">
+        <i data-lucide="help-circle" class="h-4 w-4 text-soft shrink-0"></i>
+        <span class="font-medium text-main flex-1 text-left" data-i18n="settings_howto">วิธีใช้งาน</span>
+        <i data-lucide="chevron-right" class="h-4 w-4 text-muted"></i>
+      </button>
     </div>
   </div>
 
@@ -2351,6 +2439,20 @@
       settings_trip: 'ทริป',
       settings_app: 'แอป',
       settings_theme: 'ธีม / โหมดมืด',
+      settings_howto: 'วิธีใช้งาน',
+      ob_skip: 'ข้าม',
+      ob_next: 'ถัดไป',
+      ob_start: 'เริ่มใช้งาน',
+      ob_t1_title: 'ยินดีต้อนรับสู่ TripSplit',
+      ob_t1_desc: 'แอปหารค่าใช้จ่ายทริปกับเพื่อน บันทึกง่าย คำนวณให้อัตโนมัติ รู้ทันทีว่าใครต้องจ่ายใครเท่าไหร่',
+      ob_t2_title: 'บันทึกรายจ่าย',
+      ob_t2_desc: 'กดปุ่ม + ตรงกลาง ใส่ชื่อรายการ จำนวนเงิน เลือกคนจ่าย แล้วติ๊กว่าใครร่วมหารบ้าง รองรับหลายสกุลเงินด้วย',
+      ob_t3_title: 'หารได้หลายแบบ',
+      ob_t3_desc: 'หารเท่ากันทุกคน หารตามสัดส่วน หรือระบุยอดเองรายคน เลือกได้ตามจริงในแต่ละบิล',
+      ob_t4_title: 'เคลียร์หนี้ง่ายที่สุด',
+      ob_t4_desc: 'แท็บ "เคลียร์" จะคำนวณวิธีโอนที่สั้นที่สุดให้ ว่าใครโอนให้ใครเท่าไหร่ จบหนี้ด้วยการโอนน้อยครั้งที่สุด',
+      ob_t5_title: 'เงินกองกลาง (ถ้าต้องการ)',
+      ob_t5_desc: 'เปิดใช้ในหน้าตั้งค่า ลงขันเงินกองกลางก่อนทริป แล้วจ่ายจากกองนี้ เหมาะกับทริปที่ออกเงินรวมกัน',
       settle_page_title: 'ยอดต้องเคลียร์',
       settle_page_subtitle: 'ยอดของแต่ละคน และวิธีเคลียร์หนี้ที่สั้นที่สุด',
       mark_paid: 'จ่ายแล้ว',
@@ -2498,6 +2600,20 @@
       settings_trip: 'Trip',
       settings_app: 'App',
       settings_theme: 'Theme / Dark mode',
+      settings_howto: 'How to use',
+      ob_skip: 'Skip',
+      ob_next: 'Next',
+      ob_start: 'Get started',
+      ob_t1_title: 'Welcome to TripSplit',
+      ob_t1_desc: 'Split trip expenses with friends. Log them easily, let the app do the math, and see instantly who owes whom.',
+      ob_t2_title: 'Log an expense',
+      ob_t2_desc: 'Tap the + button, enter what it was and how much, pick who paid, then check who splits it. Multiple currencies supported.',
+      ob_t3_title: 'Split it your way',
+      ob_t3_desc: 'Split evenly, by shares, or set custom amounts per person — whatever fits each bill.',
+      ob_t4_title: 'Settle up the easy way',
+      ob_t4_desc: 'The "Settle" tab works out the simplest transfers — who pays whom and how much — clearing debts in the fewest payments.',
+      ob_t5_title: 'Shared pool (optional)',
+      ob_t5_desc: 'Turn it on in Settings to pool money before the trip and pay from it — great for groups that chip in together.',
       settle_page_title: 'Settle Up',
       settle_page_subtitle: 'Each person\'s balance and the shortest way to settle',
       mark_paid: 'Mark paid',
@@ -2647,6 +2763,94 @@
     // Trigger re-render
     if (window.appState && window.appState.trips) updateAllUI();
   }
+
+  // ============ Onboarding (วิธีใช้งาน) ============
+  const OB_SLIDES = [
+    { icon: '👋', t: 'ob_t1_title', d: 'ob_t1_desc' },
+    { icon: '➕', t: 'ob_t2_title', d: 'ob_t2_desc' },
+    { icon: '🧮', t: 'ob_t3_title', d: 'ob_t3_desc' },
+    { icon: '🤝', t: 'ob_t4_title', d: 'ob_t4_desc' },
+    { icon: '🏦', t: 'ob_t5_title', d: 'ob_t5_desc' },
+  ];
+  let _obIndex = 0;
+
+  function renderOnboarding() {
+    const track = document.getElementById('obTrack');
+    const dots = document.getElementById('obDots');
+    if (!track || !dots) return;
+    track.innerHTML = OB_SLIDES.map(s => `
+      <div class="ob-slide">
+        <div class="ob-icon">${s.icon}</div>
+        <div class="ob-title">${t(s.t)}</div>
+        <div class="ob-desc">${t(s.d)}</div>
+      </div>`).join('');
+    dots.innerHTML = OB_SLIDES.map((_, i) => `<div class="ob-dot${i === 0 ? ' active' : ''}"></div>`).join('');
+  }
+
+  function updateObFooter() {
+    const dots = document.querySelectorAll('#obDots .ob-dot');
+    dots.forEach((d, i) => d.classList.toggle('active', i === _obIndex));
+    const isLast = _obIndex === OB_SLIDES.length - 1;
+    const txt = document.getElementById('obNextText');
+    const icon = document.getElementById('obNextIcon');
+    if (txt) txt.innerText = isLast ? t('ob_start') : t('ob_next');
+    if (icon) {
+      icon.setAttribute('data-lucide', isLast ? 'check' : 'arrow-right');
+      if (window.lucide) lucide.createIcons();
+    }
+    // ซ่อนปุ่มข้ามที่สไลด์สุดท้าย
+    const skip = document.getElementById('obSkip');
+    if (skip) skip.style.visibility = isLast ? 'hidden' : 'visible';
+  }
+
+  // force = เปิดเองจากหน้าตั้งค่า (ไม่เช็คว่าเคยดูแล้วหรือยัง)
+  function startOnboarding(force = false) {
+    if (!force && localStorage.getItem('trip_onboarded') === '1') return;
+    const ob = document.getElementById('onboarding');
+    if (!ob) return;
+    _obIndex = 0;
+    renderOnboarding();
+    ob.classList.add('show');
+    ob.setAttribute('aria-hidden', 'false');
+    const track = document.getElementById('obTrack');
+    if (track) {
+      track.scrollTo({ left: 0 });
+      // ซิงก์ dot เมื่อผู้ใช้ปัดเอง
+      track.onscroll = () => {
+        const w = track.clientWidth || 1;
+        const i = Math.round(track.scrollLeft / w);
+        if (i !== _obIndex) { _obIndex = i; updateObFooter(); }
+      };
+    }
+    updateObFooter();
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function onboardingNext() {
+    const track = document.getElementById('obTrack');
+    if (_obIndex >= OB_SLIDES.length - 1) {
+      finishOnboarding();
+      return;
+    }
+    _obIndex++;
+    if (track) track.scrollTo({ left: track.clientWidth * _obIndex, behavior: 'smooth' });
+    updateObFooter();
+  }
+
+  function finishOnboarding() {
+    localStorage.setItem('trip_onboarded', '1');
+    const ob = document.getElementById('onboarding');
+    if (!ob) return;
+    ob.style.opacity = '0';
+    ob.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => {
+      ob.classList.remove('show');
+      ob.setAttribute('aria-hidden', 'true');
+      ob.style.opacity = '';
+      ob.style.transition = '';
+    }, 300);
+  }
+
 
   // ============ STATE ============
   let appState = {
@@ -3115,6 +3319,8 @@
       splash.classList.add('fade-out');
       // ลบ DOM หลัง transition จบ เพื่อไม่ให้กิน memory
       setTimeout(() => splash.remove(), 600);
+      // แสดงวิธีใช้งานครั้งแรก (เฉพาะถ้ายังไม่เคยดู)
+      startOnboarding(false);
     }, wait);
   }
 
