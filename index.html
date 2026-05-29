@@ -43,15 +43,7 @@
        (100vh บน iOS รวม browser chrome ทำให้ body สูงเกินจอ → header/footer ดันออกขอบ) -->
   <script>
     (function setAppHeight() {
-      // โหมดติดตั้ง (standalone): ปล่อยให้ CSS 100dvh จัดการความสูง+safe area เอง
-      // ไม่ override ด้วย innerHeight เพราะจะทำให้แถบล่างลอยไม่ชิดขอบจอ
-      var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       function update() {
-        if (standalone) {
-          document.documentElement.style.removeProperty('--app-height');
-          return;
-        }
-        // เบราว์เซอร์ปกติ: ใช้ innerHeight กัน 100vh เพี้ยนจาก browser chrome
         document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
       }
       update();
