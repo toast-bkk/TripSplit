@@ -307,10 +307,13 @@
       display: flex;
       flex-direction: column;
       /* iOS Safari: ใช้ค่าจาก JS (--app-height) เพื่อกัน initial render ผิด
-         fallback: 100dvh → 100vh → -webkit-fill-available */
+         fallback: 100dvh → 100vh → -webkit-fill-available
+         หัก safe-area ล่างออก เพื่อกันแถบเมนูล่างโดน home indicator เบียด (โหมด standalone) */
       height: 100vh;
       height: 100dvh;
       height: var(--app-height, 100dvh);
+      padding-bottom: env(safe-area-inset-bottom);
+      box-sizing: border-box;
     }
 
     /* ===== Scroll container — เลื่อนได้เฉพาะตรงนี้ ===== */
@@ -525,7 +528,7 @@
       backdrop-filter: blur(14px) saturate(140%);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
       border-top: 1px solid var(--border);
-      padding-bottom: env(safe-area-inset-bottom);
+      padding-bottom: 6px;
     }
 
     /* ===== Page View ===== */
