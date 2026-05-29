@@ -676,6 +676,7 @@
       transition: transform 0.1s, background 0.15s;
     }
     .ob-next:active { transform: scale(0.97); }
+    .ob-trip-active { border-color: var(--primary) !important; background: var(--primary-soft) !important; }
 
     /* ===== Toast ===== */
     #toastContainer {
@@ -715,7 +716,7 @@
        เพื่อจัดกึ่งกลาง + กันปุ่มหลุดใต้คีย์บอร์ด/แถบเมนูล่าง */
     #inputModal {
       align-items: center;
-      z-index: 70; /* สูงกว่า glass-nav (50) เพื่อไม่ให้เมนูล่างทับ */
+      z-index: 90; /* สูงกว่า onboarding (80) เพื่อให้สร้างทริปจากออนบอร์ดดิ้งได้ */
       height: var(--vv-height, 100dvh);
       top: var(--vv-top, 0px);
       bottom: auto;
@@ -2453,6 +2454,10 @@
       ob_t4_desc: 'แท็บ "เคลียร์" จะคำนวณวิธีโอนที่สั้นที่สุดให้ ว่าใครโอนให้ใครเท่าไหร่ จบหนี้ด้วยการโอนน้อยครั้งที่สุด',
       ob_t5_title: 'เงินกองกลาง (ถ้าต้องการ)',
       ob_t5_desc: 'เปิดใช้ในหน้าตั้งค่า ลงขันเงินกองกลางก่อนทริป แล้วจ่ายจากกองนี้ เหมาะกับทริปที่ออกเงินรวมกัน',
+      ob_a2hs_title: 'เพิ่มไปยังหน้าจอโฮม',
+      ob_trip_title: 'เริ่มทริปแรกของคุณ',
+      ob_trip_desc: 'เลือกทริปที่มีอยู่ หรือสร้างทริปใหม่เพื่อเริ่มบันทึกค่าใช้จ่าย',
+      ob_trip_new: 'สร้างทริปใหม่',
       settle_page_title: 'ยอดต้องเคลียร์',
       settle_page_subtitle: 'ยอดของแต่ละคน และวิธีเคลียร์หนี้ที่สั้นที่สุด',
       mark_paid: 'จ่ายแล้ว',
@@ -2614,6 +2619,10 @@
       ob_t4_desc: 'The "Settle" tab works out the simplest transfers — who pays whom and how much — clearing debts in the fewest payments.',
       ob_t5_title: 'Shared pool (optional)',
       ob_t5_desc: 'Turn it on in Settings to pool money before the trip and pay from it — great for groups that chip in together.',
+      ob_a2hs_title: 'Add to Home Screen',
+      ob_trip_title: 'Start your first trip',
+      ob_trip_desc: 'Pick an existing trip or create a new one to start logging expenses.',
+      ob_trip_new: 'Create new trip',
       settle_page_title: 'Settle Up',
       settle_page_subtitle: 'Each person\'s balance and the shortest way to settle',
       mark_paid: 'Mark paid',
@@ -2765,26 +2774,96 @@
   }
 
   // ============ Onboarding (วิธีใช้งาน) ============
-  const OB_SLIDES = [
+  const OB_BASE = [
     { icon: '👋', t: 'ob_t1_title', d: 'ob_t1_desc' },
     { icon: '➕', t: 'ob_t2_title', d: 'ob_t2_desc' },
     { icon: '🧮', t: 'ob_t3_title', d: 'ob_t3_desc' },
     { icon: '🤝', t: 'ob_t4_title', d: 'ob_t4_desc' },
     { icon: '🏦', t: 'ob_t5_title', d: 'ob_t5_desc' },
   ];
+  let OB_SLIDES = [];
   let _obIndex = 0;
+
+  // ตรวจว่ารันแบบติดตั้งแล้ว (standalone) หรือยังเปิดในเบราว์เซอร์
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+  function isIOS() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  }
+
+  // สร้างเนื้อหาสไลด์ "เพิ่มไปหน้าจอโฮม" ตาม iOS/Android
+  function obA2hsContent() {
+    const en = getLang() === 'en';
+    if (isIOS()) {
+      return en
+        ? 'Tap the Share button in Safari, then choose "Add to Home Screen" — open it like a real app, works offline too.'
+        : 'กดปุ่มแชร์ในซาฟารี แล้วเลือก "เพิ่มไปยังหน้าจอโฮม" เปิดใช้เหมือนแอปจริง ใช้ออฟไลน์ได้ด้วย';
+    }
+    return en
+      ? 'Open the browser menu (⋮) and tap "Install app" or "Add to Home screen" to use it like a real app, even offline.'
+      : 'เปิดเมนูเบราว์เซอร์ (⋮) แล้วกด "ติดตั้งแอป" หรือ "เพิ่มไปยังหน้าจอโฮม" เพื่อใช้เหมือนแอปจริง ใช้ออฟไลน์ได้';
+  }
 
   function renderOnboarding() {
     const track = document.getElementById('obTrack');
     const dots = document.getElementById('obDots');
     if (!track || !dots) return;
-    track.innerHTML = OB_SLIDES.map(s => `
-      <div class="ob-slide">
+    track.innerHTML = OB_SLIDES.map(s => {
+      if (s.type === 'a2hs') {
+        return `<div class="ob-slide">
+          <div class="ob-icon">📲</div>
+          <div class="ob-title">${t('ob_a2hs_title')}</div>
+          <div class="ob-desc">${obA2hsContent()}</div>
+        </div>`;
+      }
+      if (s.type === 'trip') {
+        return `<div class="ob-slide">
+          <div class="ob-icon">🧳</div>
+          <div class="ob-title">${t('ob_trip_title')}</div>
+          <div class="ob-desc">${t('ob_trip_desc')}</div>
+          <div id="obTripPicker" class="w-full max-w-[320px] mt-4 space-y-2"></div>
+        </div>`;
+      }
+      return `<div class="ob-slide">
         <div class="ob-icon">${s.icon}</div>
         <div class="ob-title">${t(s.t)}</div>
         <div class="ob-desc">${t(s.d)}</div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     dots.innerHTML = OB_SLIDES.map((_, i) => `<div class="ob-dot${i === 0 ? ' active' : ''}"></div>`).join('');
+    renderObTripPicker();
+  }
+
+  // รายการทริปให้เลือก + ปุ่มสร้างใหม่ (เฉพาะสไลด์ trip)
+  function renderObTripPicker() {
+    const box = document.getElementById('obTripPicker');
+    if (!box) return;
+    const trips = (appState && appState.trips) || [];
+    const activeId = appState && appState.activeTripId;
+    const rows = trips.map(tr => `
+      <button onclick="obSelectTrip('${tr.id}')" class="w-full flex items-center gap-2.5 p-3 rounded-xl surface-2 border border-themed text-left ${String(tr.id) === String(activeId) ? 'ob-trip-active' : ''}">
+        <i data-lucide="map-pin" class="h-4 w-4 accent-text shrink-0"></i>
+        <span class="font-medium text-main flex-1 truncate">${escapeHtml(String(tr.name))}</span>
+        ${String(tr.id) === String(activeId) ? '<i data-lucide="check" class="h-4 w-4 accent-text shrink-0"></i>' : ''}
+      </button>`).join('');
+    box.innerHTML = rows + `
+      <button onclick="obCreateTrip()" class="w-full flex items-center justify-center gap-2 p-3 rounded-xl accent-bg-soft border border-themed border-dashed font-semibold text-main">
+        <i data-lucide="plus-circle" class="h-4 w-4 accent-text"></i> ${t('ob_trip_new')}
+      </button>`;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function obSelectTrip(id) {
+    if (String(id) !== String(appState.activeTripId)) {
+      loadInitialData(id);
+    }
+    renderObTripPicker();
+  }
+
+  // สร้างทริปใหม่จากในออนบอร์ดดิ้ง → ใช้ inputModal เดิม (จะลอยเหนือ onboarding ด้วย z สูงกว่า)
+  function obCreateTrip() {
+    openNewTripModal();
   }
 
   function updateObFooter() {
@@ -2798,16 +2877,19 @@
       icon.setAttribute('data-lucide', isLast ? 'check' : 'arrow-right');
       if (window.lucide) lucide.createIcons();
     }
-    // ซ่อนปุ่มข้ามที่สไลด์สุดท้าย
     const skip = document.getElementById('obSkip');
     if (skip) skip.style.visibility = isLast ? 'hidden' : 'visible';
   }
 
-  // force = เปิดเองจากหน้าตั้งค่า (ไม่เช็คว่าเคยดูแล้วหรือยัง)
+  // force = เปิดจากหน้าตั้งค่า → ไม่แสดงสไลด์เลือกทริป และไม่เช็คว่าเคยดูแล้ว
   function startOnboarding(force = false) {
     if (!force && localStorage.getItem('trip_onboarded') === '1') return;
     const ob = document.getElementById('onboarding');
     if (!ob) return;
+    // ประกอบสไลด์: base + a2hs (เสมอ ถ้ายังไม่ติดตั้ง) + trip (เฉพาะครั้งแรก)
+    OB_SLIDES = OB_BASE.slice();
+    if (!isStandalone()) OB_SLIDES.push({ type: 'a2hs' });
+    if (!force) OB_SLIDES.push({ type: 'trip' });
     _obIndex = 0;
     renderOnboarding();
     ob.classList.add('show');
@@ -2815,7 +2897,6 @@
     const track = document.getElementById('obTrack');
     if (track) {
       track.scrollTo({ left: 0 });
-      // ซิงก์ dot เมื่อผู้ใช้ปัดเอง
       track.onscroll = () => {
         const w = track.clientWidth || 1;
         const i = Math.round(track.scrollLeft / w);
@@ -4359,6 +4440,8 @@
         appState = res;
         updateAllUI();
         showToast('สร้างทริปสำเร็จ', 'success');
+        // ถ้าออนบอร์ดดิ้งเปิดอยู่ → อัปเดตรายการทริปให้เห็นทริปใหม่
+        if (typeof renderObTripPicker === 'function') renderObTripPicker();
       });
     };
   }
