@@ -1195,11 +1195,13 @@
       vertical-align: middle;
       flex-shrink: 0;
     }
-    /* Emoji avatar — ใช้ emoji แทนตัวอักษร แต่ยังอยู่ในวงกลมสีพื้น */
+    /* Emoji avatar — emoji อย่างเดียว ไม่มีพื้นหลัง */
     .matrix-avatar-emoji {
+      background: transparent !important;
+      color: inherit !important;
       font-weight: normal;
       line-height: 1;
-      /* emoji ใหญ่กว่าตัวอักษร แต่ไม่ใหญ่จนล้นวงกลม (62% ของขนาด container) */
+      /* emoji ใหญ่เกือบเต็ม container (95%) — ดูเด่นชัด */
     }
     .matrix-person-label {
       display: flex;
@@ -4455,10 +4457,9 @@
     const [emoji, rest] = extractLeadingEmoji(name);
 
     if (emoji) {
-      // ถ้ามี emoji ขึ้นต้น → ใช้ emoji เป็น avatar ใน "วงกลมสีพื้น" (สีจาก hash ของชื่อ)
-      // emoji อยู่ตรงกลาง พื้นเป็นสี hash-based เหมือน avatar ตัวอักษร
-      const emojiSize = Math.floor(sz * 0.62);
-      return `<span class="matrix-avatar matrix-avatar-emoji" style="background:${getAvatarColor(name)}; width:${sz}px; height:${sz}px; font-size:${emojiSize}px;">${escapeHtml(emoji)}</span>`;
+      // ถ้ามี emoji ขึ้นต้น → ใช้ emoji เป็น avatar แบบไม่มีพื้นหลัง emoji ใหญ่เต็มพื้นที่
+      const emojiSize = Math.floor(sz * 0.95);
+      return `<span class="matrix-avatar matrix-avatar-emoji" style="width:${sz}px; height:${sz}px; font-size:${emojiSize}px;">${escapeHtml(emoji)}</span>`;
     }
     // ชื่อปกติ → ใช้ตัวอักษรแรก + สีจาก hash
     const initial = (name || '?').trim().charAt(0).toUpperCase();
