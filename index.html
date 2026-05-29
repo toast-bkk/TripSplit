@@ -677,6 +677,15 @@
     }
     .ob-next:active { transform: scale(0.97); }
     .ob-trip-active { border-color: var(--primary) !important; background: var(--primary-soft) !important; }
+    .ob-opt-row { display: flex; gap: 8px; }
+    .ob-opt {
+      flex: 1; padding: 10px 8px; border-radius: 12px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-2); font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .ob-opt-active { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
 
     /* ===== Toast ===== */
     #toastContainer {
@@ -1797,7 +1806,7 @@
 
 <!-- ===== Onboarding (วิธีใช้งาน) — สร้างสไลด์ด้วย JS ===== -->
 <div id="onboarding" aria-hidden="true">
-  <button class="ob-skip" id="obSkip" onclick="finishOnboarding()" data-i18n="ob_skip">ข้าม</button>
+  <button class="ob-skip" id="obSkip" onclick="obSkipToActions()" data-i18n="ob_skip">ข้าม</button>
   <div class="ob-track" id="obTrack"></div>
   <div class="ob-footer">
     <div class="ob-dots" id="obDots"></div>
@@ -2458,6 +2467,14 @@
       ob_trip_title: 'เริ่มทริปแรกของคุณ',
       ob_trip_desc: 'เลือกทริปที่มีอยู่ หรือสร้างทริปใหม่เพื่อเริ่มบันทึกค่าใช้จ่าย',
       ob_trip_new: 'สร้างทริปใหม่',
+      ob_prefs_title: 'ตั้งค่าก่อนเริ่ม',
+      ob_prefs_desc: 'เลือกภาษาและธีมที่คุณชอบ เปลี่ยนภายหลังได้ในหน้าตั้งค่า',
+      ob_prefs_lang: 'ภาษา',
+      ob_prefs_theme: 'ธีม',
+      ob_theme_light: 'สว่าง',
+      ob_theme_dark: 'มืด',
+      ob_theme_system: 'ตามระบบ',
+      ob_creating: 'กำลังเตรียมทริป...',
       settle_page_title: 'ยอดต้องเคลียร์',
       settle_page_subtitle: 'ยอดของแต่ละคน และวิธีเคลียร์หนี้ที่สั้นที่สุด',
       mark_paid: 'จ่ายแล้ว',
@@ -2623,6 +2640,14 @@
       ob_trip_title: 'Start your first trip',
       ob_trip_desc: 'Pick an existing trip or create a new one to start logging expenses.',
       ob_trip_new: 'Create new trip',
+      ob_prefs_title: 'Set up before you start',
+      ob_prefs_desc: 'Pick your language and theme. You can change these later in Settings.',
+      ob_prefs_lang: 'Language',
+      ob_prefs_theme: 'Theme',
+      ob_theme_light: 'Light',
+      ob_theme_dark: 'Dark',
+      ob_theme_system: 'System',
+      ob_creating: 'Setting up your trip...',
       settle_page_title: 'Settle Up',
       settle_page_subtitle: 'Each person\'s balance and the shortest way to settle',
       mark_paid: 'Mark paid',
@@ -2810,6 +2835,27 @@
     const dots = document.getElementById('obDots');
     if (!track || !dots) return;
     track.innerHTML = OB_SLIDES.map(s => {
+      if (s.type === 'prefs') {
+        const lang = getLang();
+        const pref = (typeof getThemePref === 'function') ? getThemePref() : 'system';
+        const langOpt = (code, label) => `<button onclick="obSetLang('${code}')" class="ob-opt${lang === code ? ' ob-opt-active' : ''}">${label}</button>`;
+        const themeOpt = (val, icon, label) => `<button onclick="obSetTheme('${val}')" class="ob-opt${pref === val ? ' ob-opt-active' : ''}"><i data-lucide="${icon}" class="h-4 w-4"></i> ${label}</button>`;
+        return `<div class="ob-slide">
+          <div class="ob-icon">⚙️</div>
+          <div class="ob-title">${t('ob_prefs_title')}</div>
+          <div class="ob-desc">${t('ob_prefs_desc')}</div>
+          <div class="w-full max-w-[320px] mt-4 space-y-4">
+            <div>
+              <div class="text-[11px] font-semibold text-soft uppercase tracking-wider mb-1.5 text-left">${t('ob_prefs_lang')}</div>
+              <div class="ob-opt-row">${langOpt('th', 'ไทย')}${langOpt('en', 'English')}</div>
+            </div>
+            <div>
+              <div class="text-[11px] font-semibold text-soft uppercase tracking-wider mb-1.5 text-left">${t('ob_prefs_theme')}</div>
+              <div class="ob-opt-row">${themeOpt('light', 'sun', t('ob_theme_light'))}${themeOpt('dark', 'moon', t('ob_theme_dark'))}${themeOpt('system', 'monitor', t('ob_theme_system'))}</div>
+            </div>
+          </div>
+        </div>`;
+      }
       if (s.type === 'a2hs') {
         return `<div class="ob-slide">
           <div class="ob-icon">📲</div>
@@ -2863,6 +2909,38 @@
     }
   }
 
+  // เลือกภาษา/ธีมจากสไลด์ prefs — เปลี่ยนทันทีแล้ว re-render สไลด์ปัจจุบัน
+  function obSetLang(code) {
+    setLang(code);
+    renderOnboarding();          // ข้อความทุกสไลด์เปลี่ยนตามภาษา
+    obGoTo(_obIndex, false);     // คงอยู่สไลด์เดิม
+    updateObFooter();
+  }
+  function obSetTheme(val) {
+    if (typeof applyTheme === 'function') {
+      localStorage.setItem('trip_theme', val);
+      applyTheme(val);
+    }
+    renderOnboarding();
+    obGoTo(_obIndex, false);
+    updateObFooter();
+  }
+
+  // เลื่อนไปสไลด์ index ที่กำหนด
+  function obGoTo(i, smooth = true) {
+    const track = document.getElementById('obTrack');
+    _obIndex = Math.max(0, Math.min(i, OB_SLIDES.length - 1));
+    if (track) track.scrollTo({ left: track.clientWidth * _obIndex, behavior: smooth ? 'smooth' : 'auto' });
+    updateObFooter();
+  }
+
+  // ข้าม → กระโดดไปสไลด์ action แรก (a2hs หรือ trip) ไม่ปิดทั้งหมด
+  function obSkipToActions() {
+    const i = OB_SLIDES.findIndex(s => s.type === 'a2hs' || s.type === 'trip');
+    if (i === -1) { finishOnboarding(); return; }
+    obGoTo(i);
+  }
+
   // สร้างทริปใหม่จากในออนบอร์ดดิ้ง → ใช้ inputModal เดิม (จะลอยเหนือ onboarding ด้วย z สูงกว่า)
   function obCreateTrip() {
     openNewTripModal();
@@ -2880,7 +2958,12 @@
       if (window.lucide) lucide.createIcons();
     }
     const skip = document.getElementById('obSkip');
-    if (skip) skip.style.visibility = isLast ? 'hidden' : 'visible';
+    if (skip) {
+      // ซ่อนปุ่มข้ามเมื่ออยู่ที่สไลด์ action (a2hs/trip) แล้ว — ไม่มีอะไรให้ข้ามต่อ
+      const firstAction = OB_SLIDES.findIndex(s => s.type === 'a2hs' || s.type === 'trip');
+      const atActions = firstAction !== -1 && _obIndex >= firstAction;
+      skip.style.visibility = (isLast || atActions) ? 'hidden' : 'visible';
+    }
   }
 
   // force = เปิดจากหน้าตั้งค่า → ไม่แสดงสไลด์เลือกทริป และไม่เช็คว่าเคยดูแล้ว
@@ -2888,8 +2971,8 @@
     if (!force && localStorage.getItem('trip_onboarded') === '1') return;
     const ob = document.getElementById('onboarding');
     if (!ob) return;
-    // ประกอบสไลด์: base + a2hs (เสมอ ถ้ายังไม่ติดตั้ง) + trip (เฉพาะครั้งแรก)
-    OB_SLIDES = OB_BASE.slice();
+    // ประกอบสไลด์: prefs (ภาษา/ธีม) + base + a2hs (ถ้ายังไม่ติดตั้ง) + trip (เฉพาะครั้งแรก)
+    OB_SLIDES = [{ type: 'prefs' }].concat(OB_BASE);
     if (!isStandalone()) OB_SLIDES.push({ type: 'a2hs' });
     if (!force) OB_SLIDES.push({ type: 'trip' });
     _obIndex = 0;
@@ -4438,17 +4521,50 @@
       const val = document.getElementById('modalInput1').value.trim();
       if (!val) return;
       closeModal('inputModal');
+      const fromOnboarding = (() => {
+        const ob = document.getElementById('onboarding');
+        return ob && ob.classList.contains('show');
+      })();
+      // ถ้าสร้างจากออนบอร์ดดิ้ง → โชว์หน้าโหลดแอปทันทีระหว่างรอ backend
+      if (fromOnboarding) showAppLoading();
       callBackend('addTrip', [val], res => {
         appState = res;
         updateAllUI();
-        showToast('สร้างทริปสำเร็จ', 'success');
-        // ถ้าสร้างจากในออนบอร์ดดิ้ง → จบออนบอร์ดดิ้งแล้วเข้าหน้าแอปทันที
-        const ob = document.getElementById('onboarding');
-        if (ob && ob.classList.contains('show')) {
+        if (fromOnboarding) {
+          // จบออนบอร์ดดิ้ง + ปิดหน้าโหลด แล้วเข้าหน้าแอปทันที
           finishOnboarding();
+          hideAppLoading();
+        } else {
+          showToast('สร้างทริปสำเร็จ', 'success');
         }
       });
     };
+  }
+
+  // หน้าโหลดแอปชั่วคราว (ใช้สไตล์เดียวกับ splash) — แสดงระหว่างรอสร้างทริป
+  function showAppLoading() {
+    let el = document.getElementById('appLoading');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'appLoading';
+      el.className = 'splash-screen';
+      el.innerHTML = `<div class="splash-content">
+        <div class="splash-logo-wrap">
+          <div class="ob-icon" style="margin:0;animation:none;">🧳</div>
+        </div>
+        <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+        <div class="splash-text">${t('ob_creating') || 'กำลังเตรียมทริป...'}</div>
+      </div>`;
+      document.body.appendChild(el);
+    }
+    el.style.display = '';
+    el.classList.remove('fade-out');
+  }
+  function hideAppLoading() {
+    const el = document.getElementById('appLoading');
+    if (!el) return;
+    el.classList.add('fade-out');
+    setTimeout(() => el.remove(), 600);
   }
 
   function openNewFriendModal() {
