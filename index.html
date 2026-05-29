@@ -3827,7 +3827,7 @@
     const amount = parseFloat(amountEl.value);
     const payer = document.getElementById('payer').value;
 
-    if (!payer) return showToast('กรุณาเพิ่มเพื่อนก่อน');
+    if (!payer) return showToast(getLang() === 'en' ? 'Please select who paid first' : 'กรุณาเลือกผู้จ่ายก่อน');
     if (!amount || amount <= 0) return showToast('กรุณากรอกจำนวนเงิน');
 
     const splitDetails = {};
