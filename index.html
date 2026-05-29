@@ -310,6 +310,48 @@
     .danger-bg-soft { background: var(--danger-soft); color: var(--danger); }
     .warning-bg-soft { background: var(--warning-soft); color: var(--warning); }
 
+    /* ===== Top Progress Bar (saving/loading indicator) ===== */
+    .top-progress {
+      position: relative;
+      width: 100%;
+      height: 3px;
+      background: transparent;
+      overflow: hidden;
+      flex-shrink: 0;
+      pointer-events: none;
+      /* default = hidden (ไม่กินที่เลย) */
+      max-height: 0;
+      transition: max-height 0.15s ease;
+    }
+    .top-progress.show {
+      max-height: 3px;
+    }
+    .top-progress-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        var(--primary) 30%,
+        color-mix(in srgb, var(--primary) 50%, white) 50%,
+        var(--primary) 70%,
+        transparent 100%
+      );
+      background-size: 200% 100%;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .top-progress.show .top-progress-fill {
+      opacity: 1;
+      animation: top-progress-slide 1.2s linear infinite;
+    }
+    @keyframes top-progress-slide {
+      0%   { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+
     /* ===== App Header ===== */
     .app-header {
       flex-shrink: 0;
@@ -1687,6 +1729,11 @@
   </button>
 </header>
 
+<!-- Top progress bar — แสดงเมื่อกำลังบันทึก/โหลดข้อมูล (อยู่ใต้ header) -->
+<div id="topProgressBar" class="top-progress" aria-hidden="true">
+  <div class="top-progress-fill"></div>
+</div>
+
 <div id="toastContainer"></div>
 
 <!-- ===== Confirm Modal ===== -->
@@ -2740,6 +2787,38 @@
     const editing = document.getElementById('editingId').value;
     btn.innerHTML = `<i data-lucide="check-circle" class="h-5 w-5"></i> <span id="btnSubmitText">${editing ? t('btn_save_edit') : t('btn_save')}</span>`;
     lucide.createIcons();
+    hideProgress(); // safety: ปิด progress bar ด้วย
+  }
+
+  // ============ Top Progress Bar ============
+  // นับ active operations — รองรับ concurrent calls (เช่น save พร้อม sync queue)
+  let _progressActiveCount = 0;
+  function showProgress() {
+    _progressActiveCount++;
+    const el = document.getElementById('topProgressBar');
+    if (el) {
+      el.classList.add('show');
+      el.setAttribute('aria-hidden', 'false');
+    }
+  }
+  function hideProgress() {
+    _progressActiveCount = Math.max(0, _progressActiveCount - 1);
+    if (_progressActiveCount === 0) {
+      const el = document.getElementById('topProgressBar');
+      if (el) {
+        el.classList.remove('show');
+        el.setAttribute('aria-hidden', 'true');
+      }
+    }
+  }
+  // hard reset — ใช้กรณีที่อาจมี leak นับเกิน
+  function resetProgress() {
+    _progressActiveCount = 0;
+    const el = document.getElementById('topProgressBar');
+    if (el) {
+      el.classList.remove('show');
+      el.setAttribute('aria-hidden', 'true');
+    }
   }
 
   // Write operations ที่ queue ได้ตอน offline
@@ -2805,9 +2884,11 @@
       return;
     }
 
-    // Online — fetch จาก API
+    // Online — fetch จาก API (แสดง progress bar)
+    showProgress();
     fetchAPI(fnName, args)
       .then(res => {
+        hideProgress();
         // บันทึก cache ถ้าเป็น read operation
         if (ck && res && !res.error) {
           try { localStorage.setItem(ck, JSON.stringify(res)); }
@@ -2822,6 +2903,7 @@
         }
       })
       .catch(err => {
+        hideProgress();
         // ถ้า failure: write op → queue, read op → ลอง cache
         if (OFFLINE_WRITABLE.has(fnName)) {
           pushOfflineQueue(fnName, args);
