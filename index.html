@@ -292,7 +292,10 @@
       overscroll-behavior: none; /* กัน bounce ของ body */
     }
     html {
+      /* ชดเชยความสูงที่หายไปด้านบนเมื่อ black-translucent ดันเอกสารขึ้นใต้ status bar
+         กันแถบ/ช่องว่างโผล่ด้านล่างในโหมด PWA standalone */
       height: 100%;
+      min-height: calc(100% + env(safe-area-inset-top));
     }
     body {
       font-family: 'IBM Plex Sans Thai', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -303,11 +306,12 @@
       /* layout: header (auto) + content (1fr) + nav (auto) */
       display: flex;
       flex-direction: column;
-      /* ตรึงกับขอบจอจริงทั้ง 4 ด้าน — ชัวร์ทั้ง browser และ standalone (PWA)
-         ไม่ต้องพึ่งค่าความสูงที่คำนวณ ซึ่งเพี้ยนในโหมด status bar โปร่งใส */
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      height: auto;
+      /* black-translucent ดันเอกสารขึ้นใต้ status bar → ชดเชยที่ html (min-height)
+         ใช้ height ชัดให้ flex 1fr ทำงาน + min-height กันเตี้ย */
+      position: relative;
+      height: 100vh;
+      height: 100dvh;
+      min-height: 100dvh;
     }
 
     /* ===== Scroll container — เลื่อนได้เฉพาะตรงนี้ ===== */
