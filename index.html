@@ -43,16 +43,21 @@
        (100vh บน iOS รวม browser chrome ทำให้ body สูงเกินจอ → header/footer ดันออกขอบ) -->
   <script>
     (function setAppHeight() {
+      // โหมดติดตั้ง (standalone): ปล่อยให้ CSS 100dvh จัดการความสูง+safe area เอง
+      // ไม่ override ด้วย innerHeight เพราะจะทำให้แถบล่างลอยไม่ชิดขอบจอ
+      var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       function update() {
-        // window.innerHeight = visual viewport height (ไม่รวม Dynamic Island/home indicator)
+        if (standalone) {
+          document.documentElement.style.removeProperty('--app-height');
+          return;
+        }
+        // เบราว์เซอร์ปกติ: ใช้ innerHeight กัน 100vh เพี้ยนจาก browser chrome
         document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
       }
       update();
       window.addEventListener('resize', update);
       window.addEventListener('orientationchange', () => setTimeout(update, 150));
       if (window.visualViewport) {
-        // ตอน keyboard เปิด visualViewport.height จะลด — แต่เราอยากให้ body คงสูง
-        // ใช้ window.innerHeight (ไม่ใช่ visualViewport.height) — innerHeight คงที่เมื่อ keyboard เปิด
         window.visualViewport.addEventListener('resize', update);
       }
     })();
@@ -307,13 +312,10 @@
       display: flex;
       flex-direction: column;
       /* iOS Safari: ใช้ค่าจาก JS (--app-height) เพื่อกัน initial render ผิด
-         fallback: 100dvh → 100vh → -webkit-fill-available
-         หัก safe-area ล่างออก เพื่อกันแถบเมนูล่างโดน home indicator เบียด (โหมด standalone) */
+         fallback: 100dvh → 100vh → -webkit-fill-available */
       height: 100vh;
       height: 100dvh;
       height: var(--app-height, 100dvh);
-      padding-bottom: env(safe-area-inset-bottom);
-      box-sizing: border-box;
     }
 
     /* ===== Scroll container — เลื่อนได้เฉพาะตรงนี้ ===== */
@@ -528,7 +530,7 @@
       backdrop-filter: blur(14px) saturate(140%);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
       border-top: 1px solid var(--border);
-      padding-bottom: 6px;
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
 
     /* ===== Page View ===== */
