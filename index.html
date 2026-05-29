@@ -637,11 +637,17 @@
       flex: 0 0 100%; width: 100%;
       scroll-snap-align: center;
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
+      align-items: center;
       text-align: center;
       padding: 32px 32px 16px;
       gap: 8px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
+    /* เนื้อหาในสไลด์: กึ่งกลางเมื่อสั้น, เลื่อนได้เมื่อยาว */
+    .ob-slide > * { flex-shrink: 0; }
+    .ob-slide > :first-child { margin-top: auto; }
+    .ob-slide > :last-child { margin-bottom: auto; }
     .ob-icon {
       width: 96px; height: 96px; border-radius: 28px;
       display: flex; align-items: center; justify-content: center;
