@@ -2967,6 +2967,24 @@
     openNewTripModal();
   }
 
+  // เปิดหน้าเลือกทริปแบบสไลด์เดียว (ใช้หลังลบทริป) — ไม่มีสไลด์สอน/ตั้งค่า
+  function openTripPicker() {
+    const ob = document.getElementById('onboarding');
+    if (!ob) return;
+    OB_SLIDES = [{ type: 'trip' }];
+    _obIndex = 0;
+    renderOnboarding();
+    ob.classList.add('show');
+    ob.setAttribute('aria-hidden', 'false');
+    const track = document.getElementById('obTrack');
+    if (track) {
+      track.scrollTo({ left: 0 });
+      track.onscroll = null; // สไลด์เดียว ไม่ต้องซิงก์
+    }
+    updateObFooter();
+    if (window.lucide) lucide.createIcons();
+  }
+
   function updateObFooter() {
     const dots = document.querySelectorAll('#obDots .ob-dot');
     dots.forEach((d, i) => d.classList.toggle('active', i === _obIndex));
@@ -4737,6 +4755,8 @@
         localStorage.setItem('trip_last_id', res.activeTripId);
         updateAllUI();
         showToast(isEn ? 'Trip deleted' : 'ลบทริปเรียบร้อย', 'success');
+        // ลบเสร็จ → เปิดหน้าเลือกทริป
+        openTripPicker();
       });
     };
   }
