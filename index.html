@@ -6695,13 +6695,17 @@
     // iOS Safari: 'online' event บางครั้งไม่ fire ตอนกลับจาก background
     // ใช้ visibilitychange เป็น backup — ตอนกลับมาเห็นแอปอีกครั้ง + online → refresh data ล่าสุด
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && isOnline() && appState && appState.activeTripId) {
-        // sync queue ถ้ามี
-        if (getOfflineQueue().length > 0) {
-          syncOfflineQueue();
-        } else {
-          // refresh เงียบๆ ไม่แสดง toast (จะรบกวนถ้าเปิด-ปิดแอปบ่อย)
-          loadInitialData(appState.activeTripId, { skipSkeletons: true, silent: true });
+      if (document.visibilityState === 'visible') {
+        // เช็คว่าเปลี่ยนประเทศ (timezone) ไหม → หน้าต้อนรับ
+        checkCountryChange();
+        if (isOnline() && appState && appState.activeTripId) {
+          // sync queue ถ้ามี
+          if (getOfflineQueue().length > 0) {
+            syncOfflineQueue();
+          } else {
+            // refresh เงียบๆ ไม่แสดง toast (จะรบกวนถ้าเปิด-ปิดแอปบ่อย)
+            loadInitialData(appState.activeTripId, { skipSkeletons: true, silent: true });
+          }
         }
       }
     });
