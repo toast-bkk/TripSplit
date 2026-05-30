@@ -2042,16 +2042,14 @@
           <input type="text" id="item" class="w-full py-2 px-3 input-themed rounded-lg" placeholder="เช่น เครื่องดื่ม">
         </div>
         <div id="categoryContainer" class="relative shrink-0">
-          <!-- ปุ่ม emoji-only — กดเพื่อเปิด dropdown ของหมวดหมู่ -->
-          <button type="button" id="categoryEmojiBtn" onclick="toggleCategoryPicker()"
-                  class="h-full min-h-[40px] px-3 input-themed rounded-lg flex items-center justify-center text-3xl"
-                  aria-label="เลือกหมวดหมู่">
+          <!-- ปุ่ม emoji-only — visual ด้านหลัง แสดงอิโมจิหมวดที่เลือก -->
+          <div class="h-full min-h-[40px] px-3 input-themed rounded-lg flex items-center justify-center text-3xl pointer-events-none">
             <span id="categoryEmojiDisplay">🏷️</span>
-          </button>
-          <!-- ตัว select จริง ซ่อนไว้ ใช้เก็บค่า -->
-          <select id="category" onchange="handleCategoryChange()" class="hidden"></select>
-          <!-- Dropdown panel — แสดงตอนกดปุ่ม emoji -->
-          <div id="categoryPickerPanel" class="hidden absolute right-0 top-full mt-1 rounded-xl shadow-lg border border-themed py-1.5 z-50" style="min-width: 180px; background: color-mix(in srgb, var(--surface) 80%, transparent); backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%);"></div>
+          </div>
+          <!-- native select โปร่งใสคลุมทับ — รับ tap แล้วเด้ง iOS picker (โปร่งแสง/ปิดเมื่อเลื่อนเอง) -->
+          <select id="category" onchange="handleCategoryChange()"
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  aria-label="เลือกหมวดหมู่"></select>
         </div>
       </div>
     </div>
@@ -3759,24 +3757,6 @@
     ).join('');
     catHTML += `<option value="__NEW__">➕ เพิ่มหมวดหมู่...</option>`;
     catSelect.innerHTML = catHTML;
-
-    // Render dropdown panel ที่จะเปิดเมื่อกดปุ่ม emoji
-    const panel = document.getElementById('categoryPickerPanel');
-    if (panel) {
-      panel.innerHTML = appState.categories.map(c => `
-        <button type="button" onclick="pickCategory('${escapeHtml(c.name).replace(/'/g, "\\'")}')"
-                class="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:surface-2 transition">
-          <span class="text-2xl">${c.icon}</span>
-          <span class="text-main">${escapeHtml(c.name)}</span>
-        </button>
-      `).join('') + `
-        <div class="border-t border-themed my-1"></div>
-        <button type="button" onclick="closeCategoryPicker(); openNewCategoryModal()"
-                class="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:surface-2 transition accent-text">
-          <span class="text-2xl">➕</span> <span>เพิ่มหมวดหมู่...</span>
-        </button>
-      `;
-    }
     syncCategoryEmojiDisplay();
 
     // Currencies dropdown (default + custom)
@@ -3991,47 +3971,6 @@
     const name = sel.value;
     const cat = appState.categories.find(c => c.name === name);
     disp.innerText = cat ? cat.icon : '🏷️';
-  }
-
-  function toggleCategoryPicker() {
-    const panel = document.getElementById('categoryPickerPanel');
-    if (!panel) return;
-    panel.classList.toggle('hidden');
-    if (!panel.classList.contains('hidden')) {
-      // ปิดเมื่อคลิกข้างนอก หรือเลื่อนจอ
-      setTimeout(() => {
-        const cleanup = () => {
-          document.removeEventListener('click', offClick);
-          window.removeEventListener('scroll', onScroll, true);
-        };
-        const offClick = (e) => {
-          if (!panel.contains(e.target) &&
-              !document.getElementById('categoryEmojiBtn').contains(e.target)) {
-            panel.classList.add('hidden');
-            cleanup();
-          }
-        };
-        const onScroll = () => {
-          panel.classList.add('hidden');
-          cleanup();
-        };
-        document.addEventListener('click', offClick);
-        // capture:true เพื่อจับ scroll จาก container ที่เลื่อนได้ทุกตัว
-        window.addEventListener('scroll', onScroll, true);
-      }, 0);
-    }
-  }
-
-  function closeCategoryPicker() {
-    const panel = document.getElementById('categoryPickerPanel');
-    if (panel) panel.classList.add('hidden');
-  }
-
-  function pickCategory(name) {
-    const sel = document.getElementById('category');
-    if (sel) sel.value = name;
-    closeCategoryPicker();
-    syncCategoryEmojiDisplay();
   }
 
   function setSplitMode(mode) {
