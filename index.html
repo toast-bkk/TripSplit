@@ -2044,7 +2044,7 @@
         <div id="categoryContainer" class="relative shrink-0">
           <!-- ปุ่ม emoji-only — กดเพื่อเปิด dropdown ของหมวดหมู่ -->
           <button type="button" id="categoryEmojiBtn" onclick="toggleCategoryPicker()"
-                  class="h-full min-h-[40px] px-3 input-themed rounded-lg flex items-center justify-center text-xl"
+                  class="h-full min-h-[40px] px-3 input-themed rounded-lg flex items-center justify-center text-3xl"
                   aria-label="เลือกหมวดหมู่">
             <span id="categoryEmojiDisplay">🏷️</span>
           </button>
@@ -3743,15 +3743,15 @@
     if (panel) {
       panel.innerHTML = appState.categories.map(c => `
         <button type="button" onclick="pickCategory('${escapeHtml(c.name).replace(/'/g, "\\'")}')"
-                class="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm hover:surface-2 transition">
-          <span class="text-lg">${c.icon}</span>
+                class="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:surface-2 transition">
+          <span class="text-2xl">${c.icon}</span>
           <span class="text-main">${escapeHtml(c.name)}</span>
         </button>
       `).join('') + `
         <div class="border-t border-themed my-1"></div>
         <button type="button" onclick="closeCategoryPicker(); openNewCategoryModal()"
-                class="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm hover:surface-2 transition accent-text">
-          <span>➕</span> <span>เพิ่มหมวดหมู่...</span>
+                class="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:surface-2 transition accent-text">
+          <span class="text-2xl">➕</span> <span>เพิ่มหมวดหมู่...</span>
         </button>
       `;
     }
@@ -3976,16 +3976,26 @@
     if (!panel) return;
     panel.classList.toggle('hidden');
     if (!panel.classList.contains('hidden')) {
-      // ปิดเมื่อคลิกข้างนอก
+      // ปิดเมื่อคลิกข้างนอก หรือเลื่อนจอ
       setTimeout(() => {
+        const cleanup = () => {
+          document.removeEventListener('click', offClick);
+          window.removeEventListener('scroll', onScroll, true);
+        };
         const offClick = (e) => {
           if (!panel.contains(e.target) &&
               !document.getElementById('categoryEmojiBtn').contains(e.target)) {
             panel.classList.add('hidden');
-            document.removeEventListener('click', offClick);
+            cleanup();
           }
         };
+        const onScroll = () => {
+          panel.classList.add('hidden');
+          cleanup();
+        };
         document.addEventListener('click', offClick);
+        // capture:true เพื่อจับ scroll จาก container ที่เลื่อนได้ทุกตัว
+        window.addEventListener('scroll', onScroll, true);
       }, 0);
     }
   }
