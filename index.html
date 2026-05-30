@@ -552,6 +552,45 @@
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideDown { from { transform: translateY(-16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     @keyframes toastBump { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+    /* ===== Welcome Overlay (หน้าต้อนรับเปลี่ยนประเทศ) ===== */
+    #welcomeOverlay {
+      position: fixed; inset: 0; z-index: 95;
+      display: flex; align-items: center; justify-content: center;
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      backdrop-filter: blur(20px) saturate(120%);
+      -webkit-backdrop-filter: blur(20px) saturate(120%);
+      opacity: 0; transition: opacity 0.4s ease;
+      overflow: hidden;
+    }
+    #welcomeOverlay.show { opacity: 1; }
+    .welcome-inner {
+      text-align: center; padding: 32px;
+      transform: scale(0.8) translateY(20px); opacity: 0;
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease;
+    }
+    #welcomeOverlay.show .welcome-inner { transform: scale(1) translateY(0); opacity: 1; }
+    .welcome-emoji {
+      font-size: 84px; line-height: 1; margin-bottom: 20px;
+      animation: welcomeBounce 1.2s ease-in-out infinite;
+    }
+    @keyframes welcomeBounce {
+      0%, 100% { transform: translateY(0) rotate(-3deg); }
+      50% { transform: translateY(-14px) rotate(3deg); }
+    }
+    .welcome-title { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1.3; margin-bottom: 8px; }
+    .welcome-sub { font-size: 16px; color: var(--text-2); }
+    /* Confetti */
+    .welcome-confetti { position: absolute; inset: 0; pointer-events: none; }
+    .welcome-confetti span {
+      position: absolute; top: -20px; width: 10px; height: 14px; border-radius: 2px;
+      opacity: 0; animation-name: confettiFall; animation-timing-function: linear; animation-iteration-count: infinite;
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+      10% { opacity: 1; }
+      100% { transform: translateY(105vh) rotate(720deg); opacity: 0.9; }
+    }
     @keyframes scaleIn { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 60% { transform: scale(1.03); } 100% { transform: scale(1); opacity: 1; } }
@@ -2201,15 +2240,16 @@
       <!-- โหมดปกติ: จำนวนรายการ -->
       <div class="text-2xl font-bold text-main" id="statCount">0</div>
       <!-- โหมดนาฬิกา: เวลาไทย vs เวลาเครื่อง (แสดงเมื่ออยู่ต่างโซน) -->
-      <div id="statClock" class="hidden space-y-0.5">
-        <div class="flex items-baseline justify-between gap-1">
-          <span class="text-[11px] text-soft shrink-0">🇹🇭</span>
-          <span class="text-base font-bold text-main tabular-nums" id="clockTH">--:--</span>
+      <div id="statClock" class="hidden space-y-1">
+        <div class="flex items-center justify-between gap-1">
+          <span class="text-xl shrink-0">🇹🇭</span>
+          <span class="text-lg font-bold text-main tabular-nums" id="clockTH">--:--</span>
         </div>
-        <div class="flex items-baseline justify-between gap-1">
-          <span class="text-[11px] text-soft shrink-0" id="clockLocalFlag">📍</span>
-          <span class="text-base font-bold accent-text tabular-nums" id="clockLocal">--:--</span>
+        <div class="flex items-center justify-between gap-1">
+          <span class="text-xl shrink-0" id="clockLocalFlag">📍</span>
+          <span class="text-lg font-bold accent-text tabular-nums" id="clockLocal">--:--</span>
         </div>
+        <div class="text-[10px] text-muted text-center pt-0.5" id="clockDiff"></div>
       </div>
     </div>
     <div class="surface rounded-2xl p-4 shadow-soft border border-themed">
@@ -3617,6 +3657,12 @@
       setTimeout(() => splash.remove(), 600);
       // แสดงวิธีใช้งานครั้งแรก (เฉพาะถ้ายังไม่เคยดู)
       startOnboarding(false);
+      // ตรวจการเปลี่ยนประเทศ → หน้าต้อนรับ (หน่วงให้ onboarding เคลียร์ก่อน)
+      setTimeout(() => {
+        const ob = document.getElementById('onboarding');
+        const obShown = ob && ob.classList.contains('show');
+        if (!obShown) checkCountryChange();
+      }, 800);
     }, wait);
   }
 
@@ -4928,16 +4974,78 @@
   // ============ นาฬิกาเทียบเวลา (ไทย vs เวลาเครื่อง) ============
   let _clockTimer = null;
   function getTZAbbr(tz) {
-    // ดึงชื่อย่อโซนเวลา/ธงคร่าวๆ จาก timezone string
-    const flags = {
-      'Asia/Seoul': '🇰🇷', 'Asia/Tokyo': '🇯🇵', 'Asia/Bangkok': '🇹🇭',
-      'Asia/Ho_Chi_Minh': '🇻🇳', 'Asia/Singapore': '🇸🇬', 'Asia/Shanghai': '🇨🇳',
-      'Asia/Taipei': '🇹🇼', 'Asia/Hong_Kong': '🇭🇰', 'Europe/London': '🇬🇧',
-      'Europe/Paris': '🇫🇷', 'America/New_York': '🇺🇸', 'America/Los_Angeles': '🇺🇸',
-      'Australia/Sydney': '🇦🇺', 'Asia/Kuala_Lumpur': '🇲🇾'
-    };
-    return flags[tz] || '📍';
+    return (TZ_COUNTRY[tz] && TZ_COUNTRY[tz].flag) || '📍';
   }
+
+  // map timezone → ประเทศ (ธง + ชื่อ)
+  const TZ_COUNTRY = {
+    'Asia/Seoul': { flag: '🇰🇷', th: 'เกาหลี', en: 'Korea' },
+    'Asia/Tokyo': { flag: '🇯🇵', th: 'ญี่ปุ่น', en: 'Japan' },
+    'Asia/Bangkok': { flag: '🇹🇭', th: 'ไทย', en: 'Thailand' },
+    'Asia/Ho_Chi_Minh': { flag: '🇻🇳', th: 'เวียดนาม', en: 'Vietnam' },
+    'Asia/Singapore': { flag: '🇸🇬', th: 'สิงคโปร์', en: 'Singapore' },
+    'Asia/Shanghai': { flag: '🇨🇳', th: 'จีน', en: 'China' },
+    'Asia/Taipei': { flag: '🇹🇼', th: 'ไต้หวัน', en: 'Taiwan' },
+    'Asia/Hong_Kong': { flag: '🇭🇰', th: 'ฮ่องกง', en: 'Hong Kong' },
+    'Asia/Kuala_Lumpur': { flag: '🇲🇾', th: 'มาเลเซีย', en: 'Malaysia' },
+    'Europe/London': { flag: '🇬🇧', th: 'อังกฤษ', en: 'the UK' },
+    'Europe/Paris': { flag: '🇫🇷', th: 'ฝรั่งเศส', en: 'France' },
+    'America/New_York': { flag: '🇺🇸', th: 'อเมริกา', en: 'the USA' },
+    'America/Los_Angeles': { flag: '🇺🇸', th: 'อเมริกา', en: 'the USA' },
+    'Australia/Sydney': { flag: '🇦🇺', th: 'ออสเตรเลีย', en: 'Australia' }
+  };
+
+  // ตรวจจับการเปลี่ยนประเทศ (timezone) แล้วแสดงหน้าต้อนรับ
+  function checkCountryChange() {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const last = localStorage.getItem('trip_last_tz');
+    if (!last) { localStorage.setItem('trip_last_tz', tz); return; } // ครั้งแรก — จำไว้เฉยๆ
+    if (last === tz) return; // ไม่เปลี่ยน
+    localStorage.setItem('trip_last_tz', tz);
+    const en = getLang() === 'en';
+    const info = TZ_COUNTRY[tz];
+    if (tz === 'Asia/Bangkok') {
+      showWelcome('🏠', en ? 'Welcome home!' : 'ยินดีต้อนรับกลับบ้าน', en ? 'Hope you had a great trip ✈️' : 'หวังว่าเที่ยวสนุกนะ ✈️');
+    } else {
+      const name = info ? (en ? info.en : info.th) : (en ? 'your destination' : 'จุดหมายใหม่');
+      const flag = info ? info.flag : '🌏';
+      showWelcome(flag, en ? `Welcome to ${name}!` : `ยินดีต้อนรับสู่${name}`, en ? 'Enjoy your trip ✈️' : 'เที่ยวให้สนุกนะ ✈️');
+    }
+  }
+
+  // แสดงหน้าต้อนรับเต็มจอพร้อมอนิเมชัน
+  function showWelcome(emoji, title, subtitle) {
+    let el = document.getElementById('welcomeOverlay');
+    if (el) el.remove();
+    el = document.createElement('div');
+    el.id = 'welcomeOverlay';
+    el.innerHTML = `
+      <div class="welcome-confetti" aria-hidden="true"></div>
+      <div class="welcome-inner">
+        <div class="welcome-emoji">${emoji}</div>
+        <div class="welcome-title">${escapeHtml(title)}</div>
+        <div class="welcome-sub">${escapeHtml(subtitle)}</div>
+      </div>`;
+    document.body.appendChild(el);
+    const conf = el.querySelector('.welcome-confetti');
+    const colors = ['var(--primary)', '#7fb89a', '#e8c468', '#e88a5a', '#ffffff'];
+    for (let i = 0; i < 24; i++) {
+      const s = document.createElement('span');
+      s.style.left = Math.random() * 100 + '%';
+      s.style.background = colors[i % colors.length];
+      s.style.animationDelay = (Math.random() * 0.5) + 's';
+      s.style.animationDuration = (1.5 + Math.random() * 1.2) + 's';
+      conf.appendChild(s);
+    }
+    requestAnimationFrame(() => el.classList.add('show'));
+    const close = () => {
+      el.classList.remove('show');
+      setTimeout(() => el.remove(), 400);
+    };
+    el.addEventListener('click', close);
+    setTimeout(close, 3500);
+  }
+
 
   function updateWorldClock() {
     const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -4973,6 +5081,23 @@
       const opt = { hour: '2-digit', minute: '2-digit', hour12: false };
       document.getElementById('clockTH').innerText = d.toLocaleTimeString('en-GB', { ...opt, timeZone: 'Asia/Bangkok' });
       document.getElementById('clockLocal').innerText = d.toLocaleTimeString('en-GB', { ...opt, timeZone: localTZ });
+      // ผลต่างชั่วโมง (เวลาท้องถิ่นเทียบกับไทย)
+      const thMs = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).getTime();
+      const locMs = new Date(d.toLocaleString('en-US', { timeZone: localTZ })).getTime();
+      const diffH = Math.round((locMs - thMs) / 3600000);
+      const diffEl = document.getElementById('clockDiff');
+      if (diffEl) {
+        const en = getLang() === 'en';
+        if (diffH === 0) {
+          diffEl.innerText = en ? 'Same time' : 'เวลาเดียวกัน';
+        } else {
+          const ahead = diffH > 0;
+          const abs = Math.abs(diffH);
+          diffEl.innerText = en
+            ? `${ahead ? '+' : '−'}${abs}h vs Thailand`
+            : `${ahead ? 'เร็วกว่า' : 'ช้ากว่า'}ไทย ${abs} ชม.`;
+        }
+      }
     };
     tick();
     if (_clockTimer) clearInterval(_clockTimer);
