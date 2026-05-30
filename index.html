@@ -3521,7 +3521,11 @@
   }
 
   function loadInitialData(requestedTripId = null, opts = {}) {
-    const { skipSkeletons = false, silent = false } = opts;
+    const { skipSkeletons = false, silent = false, showLoading = false } = opts;
+    // แสดงหน้าโหลดเต็มจอ (ใช้ตอนเปลี่ยนทริป) ระหว่างรอข้อมูล
+    if (showLoading && typeof showAppLoading === 'function') {
+      showAppLoading(getLang() === 'en' ? 'Loading…' : 'กำลังโหลด...');
+    }
     const hasExistingData = appState && appState.trips && appState.trips.length > 0;
     // แสดง skeleton เฉพาะตอนยังไม่มีข้อมูล (เปิดแอปครั้งแรก)
     // ถ้ามีข้อมูลอยู่แล้ว → ไม่ทำลาย UI ระหว่าง refresh
@@ -3533,6 +3537,7 @@
       // ป้องกันกรณี res เป็น null/undefined (เช่น offline + no cache)
       if (!res) {
         hideSplashScreen();
+        if (typeof hideAppLoading === 'function') hideAppLoading();
         return;
       }
       appState = res;
@@ -3541,10 +3546,7 @@
       }
       updateAllUI();
       hideSplashScreen();
-      if (!silent && hasExistingData) {
-        // ถ้าเป็นการ refresh สำเร็จ — แจ้งเงียบๆ
-        // ไม่ต้อง toast ทุกครั้ง (รบกวน UX) — ใช้ progress bar เป็น feedback แทน
-      }
+      if (showLoading && typeof hideAppLoading === 'function') hideAppLoading();
     });
   }
 
@@ -3801,9 +3803,9 @@
 
   function switchTrip() {
     const newTripId = document.getElementById('tripSelector').value;
-    if (newTripId) {
+    if (newTripId && newTripId !== appState.activeTripId) {
       cancelEdit(); // reset edit state when switching trip
-      loadInitialData(newTripId);
+      loadInitialData(newTripId, { showLoading: true });
     }
   }
 
@@ -4582,7 +4584,8 @@
   }
 
   // หน้าโหลดแอปชั่วคราว (ใช้สไตล์เดียวกับ splash) — แสดงระหว่างรอสร้างทริป
-  function showAppLoading() {
+  function showAppLoading(message) {
+    const txt = message || t('ob_creating') || 'กำลังเตรียมทริป...';
     let el = document.getElementById('appLoading');
     if (!el) {
       el = document.createElement('div');
@@ -4593,10 +4596,12 @@
           <div class="ob-icon" style="margin:0;animation:none;">🧳</div>
         </div>
         <div class="splash-loader"><div class="splash-loader-bar"></div></div>
-        <div class="splash-text">${t('ob_creating') || 'กำลังเตรียมทริป...'}</div>
+        <div class="splash-text" id="appLoadingText"></div>
       </div>`;
       document.body.appendChild(el);
     }
+    const textEl = el.querySelector('#appLoadingText');
+    if (textEl) textEl.innerText = txt;
     el.style.display = '';
     el.classList.remove('fade-out');
   }
