@@ -2194,11 +2194,23 @@
     <div class="surface rounded-2xl p-4 shadow-soft border border-themed">
       <div class="flex items-center gap-2 mb-1">
         <div class="w-7 h-7 rounded-lg accent-bg-soft flex items-center justify-center">
-          <i data-lucide="receipt" class="h-3.5 w-3.5"></i>
+          <i data-lucide="receipt" class="h-3.5 w-3.5" id="statCardIcon"></i>
         </div>
-        <span class="text-[10px] text-soft uppercase font-semibold tracking-wider" data-i18n="count_items">รายการ</span>
+        <span class="text-[10px] text-soft uppercase font-semibold tracking-wider" id="statCardLabel" data-i18n="count_items">รายการ</span>
       </div>
+      <!-- โหมดปกติ: จำนวนรายการ -->
       <div class="text-2xl font-bold text-main" id="statCount">0</div>
+      <!-- โหมดนาฬิกา: เวลาไทย vs เวลาเครื่อง (แสดงเมื่ออยู่ต่างโซน) -->
+      <div id="statClock" class="hidden space-y-0.5">
+        <div class="flex items-baseline justify-between gap-1">
+          <span class="text-[11px] text-soft shrink-0">🇹🇭</span>
+          <span class="text-base font-bold text-main tabular-nums" id="clockTH">--:--</span>
+        </div>
+        <div class="flex items-baseline justify-between gap-1">
+          <span class="text-[11px] text-soft shrink-0" id="clockLocalFlag">📍</span>
+          <span class="text-base font-bold accent-text tabular-nums" id="clockLocal">--:--</span>
+        </div>
+      </div>
     </div>
     <div class="surface rounded-2xl p-4 shadow-soft border border-themed">
       <div class="flex items-center gap-2 mb-1">
@@ -4853,6 +4865,18 @@
 
   // เพิ่มรายการที่เพิ่งลบกลับเข้าไป (undo)
   function restoreDeletedRecord(rec) {
+    // แปลงวันที่เป็น local date (YYYY-MM-DD) ไม่ใช่ slice ISO ตรงๆ
+    // เพราะ ISO เป็น UTC จะทำให้วันที่เพี้ยน 1 วันในไทย (+7)
+    let localDate;
+    if (rec.date) {
+      const d = new Date(rec.date);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        localDate = `${y}-${m}-${da}`;
+      }
+    }
     const data = {
       tripId: appState.activeTripId,
       type: rec.type || 'Expense',
@@ -4864,7 +4888,7 @@
       exchangeRate: rec.exchangeRate || 1,
       splitDetails: rec.details || {},
       note: rec.note || '',
-      date: rec.date ? rec.date.slice(0, 10) : undefined
+      date: localDate
     };
     callBackend('addExpense', [data], res => {
       appState = res;
@@ -4899,6 +4923,60 @@
         });
       }
     );
+  }
+
+  // ============ นาฬิกาเทียบเวลา (ไทย vs เวลาเครื่อง) ============
+  let _clockTimer = null;
+  function getTZAbbr(tz) {
+    // ดึงชื่อย่อโซนเวลา/ธงคร่าวๆ จาก timezone string
+    const flags = {
+      'Asia/Seoul': '🇰🇷', 'Asia/Tokyo': '🇯🇵', 'Asia/Bangkok': '🇹🇭',
+      'Asia/Ho_Chi_Minh': '🇻🇳', 'Asia/Singapore': '🇸🇬', 'Asia/Shanghai': '🇨🇳',
+      'Asia/Taipei': '🇹🇼', 'Asia/Hong_Kong': '🇭🇰', 'Europe/London': '🇬🇧',
+      'Europe/Paris': '🇫🇷', 'America/New_York': '🇺🇸', 'America/Los_Angeles': '🇺🇸',
+      'Australia/Sydney': '🇦🇺', 'Asia/Kuala_Lumpur': '🇲🇾'
+    };
+    return flags[tz] || '📍';
+  }
+
+  function updateWorldClock() {
+    const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const card = document.getElementById('statClock');
+    const countEl = document.getElementById('statCount');
+    const label = document.getElementById('statCardLabel');
+    const icon = document.getElementById('statCardIcon');
+
+    // เทียบ offset จริงของไทยกับเครื่อง — ถ้าตรงกัน (อยู่ไทย) แสดงจำนวนรายการตามเดิม
+    const now = new Date();
+    const thStr = now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
+    const localStr = now.toLocaleString('en-US', { timeZone: localTZ });
+    const sameZone = new Date(thStr).getTime() === new Date(localStr).getTime();
+
+    if (sameZone || !card) {
+      if (card) card.classList.add('hidden');
+      if (countEl) countEl.classList.remove('hidden');
+      if (label) { label.removeAttribute('data-i18n'); label.innerText = getLang() === 'en' ? 'ITEMS' : 'รายการ'; }
+      if (icon) icon.setAttribute('data-lucide', 'receipt');
+      if (_clockTimer) { clearInterval(_clockTimer); _clockTimer = null; }
+      return;
+    }
+
+    // อยู่ต่างโซน → แสดงนาฬิกาเทียบ
+    countEl.classList.add('hidden');
+    card.classList.remove('hidden');
+    if (label) { label.removeAttribute('data-i18n'); label.innerText = getLang() === 'en' ? 'LOCAL TIME' : 'เวลาท้องถิ่น'; }
+    if (icon) { icon.setAttribute('data-lucide', 'clock'); lucide.createIcons(); }
+    document.getElementById('clockLocalFlag').innerText = getTZAbbr(localTZ);
+
+    const tick = () => {
+      const d = new Date();
+      const opt = { hour: '2-digit', minute: '2-digit', hour12: false };
+      document.getElementById('clockTH').innerText = d.toLocaleTimeString('en-GB', { ...opt, timeZone: 'Asia/Bangkok' });
+      document.getElementById('clockLocal').innerText = d.toLocaleTimeString('en-GB', { ...opt, timeZone: localTZ });
+    };
+    tick();
+    if (_clockTimer) clearInterval(_clockTimer);
+    _clockTimer = setInterval(tick, 1000 * 10); // อัปเดตทุก 10 วินาที
   }
 
   // ============ RENDER: Insights (ข้อมูลเชิงลึก) ============
@@ -4982,6 +5060,7 @@
     // Stats grid
     const expenseCount = appState.history.filter(h => h.type !== 'Repayment' && h.type !== 'Topup' && h.type !== 'Refund').length;
     document.getElementById('statCount').innerText = expenseCount;
+    updateWorldClock();
     const avgPerPerson = appState.participants.length > 0
       ? appState.totalSpent / appState.participants.length
       : 0;
