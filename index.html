@@ -3089,6 +3089,28 @@
   let dailyChartInstance = null;
 
   // Default currency settings (built-in)
+  // ธง + ชื่อสกุลเงิน (ภาษาไทย/อังกฤษ) สำหรับแสดงใน dropdown
+  const CURRENCY_META = {
+    THB: { flag: '🇹🇭', th: 'บาท', en: 'Thai Baht' },
+    VND: { flag: '🇻🇳', th: 'ดองเวียดนาม', en: 'Vietnamese Dong' },
+    JPY: { flag: '🇯🇵', th: 'เยนญี่ปุ่น', en: 'Japanese Yen' },
+    KRW: { flag: '🇰🇷', th: 'วอนเกาหลี', en: 'Korean Won' },
+    USD: { flag: '🇺🇸', th: 'ดอลลาร์สหรัฐ', en: 'US Dollar' },
+    EUR: { flag: '🇪🇺', th: 'ยูโร', en: 'Euro' },
+    GBP: { flag: '🇬🇧', th: 'ปอนด์', en: 'British Pound' },
+    CNY: { flag: '🇨🇳', th: 'หยวนจีน', en: 'Chinese Yuan' },
+    SGD: { flag: '🇸🇬', th: 'ดอลลาร์สิงคโปร์', en: 'Singapore Dollar' },
+    MYR: { flag: '🇲🇾', th: 'ริงกิตมาเลเซีย', en: 'Malaysian Ringgit' },
+    TWD: { flag: '🇹🇼', th: 'ดอลลาร์ไต้หวัน', en: 'Taiwan Dollar' },
+    HKD: { flag: '🇭🇰', th: 'ดอลลาร์ฮ่องกง', en: 'Hong Kong Dollar' },
+    AUD: { flag: '🇦🇺', th: 'ดอลลาร์ออสเตรเลีย', en: 'Australian Dollar' }
+  };
+  function currencyLabel(code) {
+    const m = CURRENCY_META[code];
+    if (!m) return code; // สกุลที่ผู้ใช้เพิ่มเอง — แสดงรหัสล้วน
+    return `${m.flag} ${getLang() === 'en' ? m.en : m.th}`;
+  }
+
   const defaultCurrencies = {
     'THB': { rate: 1, type: 'multiply', prefix: '1 THB =', suffix: 'THB' },
     'VND': { rate: 700, type: 'divide',   prefix: '1 THB =', suffix: 'VND' },
@@ -4038,14 +4060,23 @@
     const sel = document.getElementById('currency');
     if (!sel) return;
     const current = sel.value || 'THB';
+    const en = getLang() === 'en';
     sel.innerHTML = Object.keys(currencySettings).map(code =>
-      `<option value="${code}">${code}</option>`
-    ).join('');
+      `<option value="${code}">${currencyLabel(code)}</option>`
+    ).join('') + `<option value="__ADD_CURRENCY__">${en ? '➕ Add currency…' : '➕ เพิ่มเติม…'}</option>`;
     sel.value = currencySettings[current] ? current : 'THB';
   }
 
   function handleCurrencyChange() {
-    const cur = document.getElementById('currency').value;
+    const sel = document.getElementById('currency');
+    const cur = sel.value;
+    // เลือก "เพิ่มเติม…" → เปิด modal เพิ่มสกุลเงิน แล้วรีเซ็ตกลับค่าเดิม
+    if (cur === '__ADD_CURRENCY__') {
+      sel.value = 'THB';
+      handleCurrencyChange();
+      if (typeof openNewCurrencyModal === 'function') openNewCurrencyModal();
+      return;
+    }
     const div = document.getElementById('exchangeRateDiv');
     if (cur === 'THB') {
       div.classList.add('hidden');
@@ -5723,6 +5754,12 @@
       saveCustomCurrency(code, rate, window._curMode);
       closeModal('inputModal');
       updateAllUI();
+      // เลือกสกุลใหม่ทันทีในช่องบันทึก (ถ้าผู้ใช้กำลังกรอกค่าใช้จ่ายอยู่)
+      const sel = document.getElementById('currency');
+      if (sel && currencySettings[code]) {
+        sel.value = code;
+        handleCurrencyChange();
+      }
       showToast(t('cur_added', { code }), 'success');
     };
   }
