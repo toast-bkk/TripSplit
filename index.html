@@ -5396,7 +5396,7 @@
     const dateStr = now.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: '2-digit' });
     const timeStr = now.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' });
     let text = `💰 ${isEn ? 'Settlement Summary' : 'สรุปเคลียร์หนี้'} — ${trip ? trip.name : (isEn ? 'Trip' : 'ทริป')}\n`;
-    text += `📅 ${dateStr} ${timeStr}\n\n`;
+    text += `📅 ${dateStr} · ${timeStr}${isEn ? '' : ' น.'}\n\n`;
     appState.settlements.forEach(s => {
       text += `${s.from} → ${s.to}\n   = ${fmt(s.amount)} ${isEn ? 'THB' : 'บาท'}\n`;
     });
