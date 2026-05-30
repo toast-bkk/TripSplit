@@ -2222,6 +2222,14 @@
     <div id="categoryLegend" class="mt-3 space-y-1.5"></div>
   </div>
 
+  <!-- Insights — ข้อมูลเชิงลึก (สร้างด้วย JS) -->
+  <div id="insightsCard" class="hidden surface rounded-2xl p-5 shadow-soft border border-themed">
+    <h3 class="font-bold text-main mb-3 flex items-center gap-2">
+      <i data-lucide="sparkles" class="h-4 w-4 accent-text"></i> <span data-i18n="insights_title">ข้อมูลน่าสนใจ</span>
+    </h3>
+    <div id="insightsContent" class="space-y-2.5"></div>
+  </div>
+
   <!-- Pool Summary (กองกลาง) — แสดงเฉพาะเมื่อเปิดใช้ -->
   <div id="poolSummaryCard" class="hidden surface rounded-2xl p-5 shadow-soft border border-themed"></div>
 
@@ -2565,6 +2573,7 @@
       count_items: 'รายการ',
       avg_per_person: 'เฉลี่ย/คน',
       by_category: 'สรุปตามหมวด',
+      insights_title: 'ข้อมูลน่าสนใจ',
       daily_spending: 'รายจ่ายต่อวัน',
       per_person_balance: 'ยอดของแต่ละคน',
       expense_matrix: 'ตารางค่าใช้จ่าย',
@@ -2734,6 +2743,7 @@
       count_items: 'Items',
       avg_per_person: 'Avg/person',
       by_category: 'By category',
+      insights_title: 'Insights',
       daily_spending: 'Daily spending',
       per_person_balance: 'Each person',
       expense_matrix: 'Expense table',
@@ -3321,6 +3331,38 @@
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(-10px)';
     setTimeout(() => toast.remove(), 300);
+  }
+
+  // Toast ที่มีปุ่ม action (เช่น เลิกทำ) — อยู่นานกว่าปกติ (5 วินาที)
+  function showToastWithAction(message, actionLabel, onAction, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toasts = container.querySelectorAll('.toast');
+    if (toasts.length >= 3) dismissToast(toasts[0]);
+
+    const styleMap = {
+      success: { bg: 'var(--success)', color: 'white' },
+      error: { bg: 'var(--danger)', color: 'white' },
+      info: { bg: 'var(--text)', color: 'var(--bg)' }
+    };
+    const s = styleMap[type] || styleMap.info;
+    const toast = document.createElement('div');
+    toast.className = `toast px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm`;
+    toast.style.background = s.bg;
+    toast.style.color = s.color;
+    const btnId = 'undoBtn_' + Date.now();
+    toast.innerHTML = `<span>${escapeHtml(message)}</span>
+      <button id="${btnId}" class="font-bold underline shrink-0" style="color: inherit;">${escapeHtml(actionLabel)}</button>`;
+    container.appendChild(toast);
+    lucide.createIcons();
+    const btn = toast.querySelector('#' + btnId);
+    if (btn) {
+      btn.onclick = () => {
+        dismissToast(toast);
+        if (typeof onAction === 'function') onAction();
+      };
+    }
+    toast._timer = setTimeout(() => dismissToast(toast), 5000);
   }
 
   function escapeHtml(s) {
@@ -4792,10 +4834,43 @@
         callBackend('deleteExpense', [id, appState.activeTripId], res => {
           appState = res;
           updateAllUI();
-          showToast('ลบสำเร็จ', 'success');
+          // เสนอ "เลิกทำ" — เพิ่มรายการกลับด้วยข้อมูลเดิมที่เก็บไว้
+          if (rec) {
+            const en = getLang() === 'en';
+            showToastWithAction(
+              en ? 'Deleted' : 'ลบแล้ว',
+              en ? 'Undo' : 'เลิกทำ',
+              () => restoreDeletedRecord(rec),
+              'info'
+            );
+          } else {
+            showToast('ลบสำเร็จ', 'success');
+          }
         });
       }
     );
+  }
+
+  // เพิ่มรายการที่เพิ่งลบกลับเข้าไป (undo)
+  function restoreDeletedRecord(rec) {
+    const data = {
+      tripId: appState.activeTripId,
+      type: rec.type || 'Expense',
+      payer: rec.payer,
+      item: rec.item || '',
+      category: rec.category,
+      amount: rec.amount,
+      currency: rec.currency || 'THB',
+      exchangeRate: rec.exchangeRate || 1,
+      splitDetails: rec.details || {},
+      note: rec.note || '',
+      date: rec.date ? rec.date.slice(0, 10) : undefined
+    };
+    callBackend('addExpense', [data], res => {
+      appState = res;
+      updateAllUI();
+      showToast(getLang() === 'en' ? 'Restored' : 'กู้คืนแล้ว', 'success');
+    });
   }
 
   function deleteParticipantPrompt(name) {
@@ -4826,6 +4901,76 @@
     );
   }
 
+  // ============ RENDER: Insights (ข้อมูลเชิงลึก) ============
+  function renderInsights() {
+    const card = document.getElementById('insightsCard');
+    const box = document.getElementById('insightsContent');
+    if (!card || !box) return;
+    const en = getLang() === 'en';
+
+    // รายจ่ายจริง (ไม่รวม repayment/topup/refund)
+    const expenses = (appState.history || []).filter(h =>
+      h.type !== 'Repayment' && h.type !== 'Topup' && h.type !== 'Refund');
+    if (expenses.length === 0) { card.classList.add('hidden'); return; }
+
+    const rows = [];
+
+    // 1) หมวดเด่น (จ่ายเยอะสุด)
+    const byCat = {};
+    expenses.forEach(h => { byCat[h.category] = (byCat[h.category] || 0) + (h.baseAmount || 0); });
+    const topCat = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
+    if (topCat && appState.totalSpent > 0) {
+      const cat = appState.categories.find(c => c.name === topCat[0]);
+      const icon = cat ? cat.icon : '🏷️';
+      const pct = Math.round(topCat[1] / appState.totalSpent * 100);
+      rows.push({
+        icon,
+        label: en ? `Top category: ${topCat[0]}` : `หมวดที่ใช้มากสุด: ${topCat[0]}`,
+        value: `${baht(topCat[1], 0)} · ${pct}%`
+      });
+    }
+
+    // 2) ใครจ่าย (ออกเงินสด) เยอะสุด / น้อยสุด
+    const byPayer = {};
+    appState.participants.forEach(p => { byPayer[p] = 0; });
+    expenses.forEach(h => {
+      if (h.payer && h.payer !== '__POOL__' && byPayer[h.payer] !== undefined) {
+        byPayer[h.payer] += (h.baseAmount || 0);
+      }
+    });
+    const payerArr = Object.entries(byPayer).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    if (payerArr.length >= 1) {
+      const [topName, topVal] = payerArr[0];
+      rows.push({
+        icon: '💪',
+        label: en ? `Paid the most: ${topName}` : `ออกเงินมากสุด: ${topName}`,
+        value: baht(topVal, 0)
+      });
+    }
+
+    // 3) เฉลี่ยต่อวัน (ถ้าทริปกินเวลามากกว่า 1 วัน)
+    const dates = expenses.map(h => new Date(h.date).toDateString());
+    const uniqueDays = new Set(dates).size;
+    if (uniqueDays >= 1 && appState.totalSpent > 0) {
+      rows.push({
+        icon: '📆',
+        label: en ? `Avg per day (${uniqueDays} ${uniqueDays > 1 ? 'days' : 'day'})` : `เฉลี่ยต่อวัน (${uniqueDays} วัน)`,
+        value: baht(appState.totalSpent / uniqueDays, 0)
+      });
+    }
+
+    if (rows.length === 0) { card.classList.add('hidden'); return; }
+
+    box.innerHTML = rows.map(r => `
+      <div class="flex items-center gap-3">
+        <span class="text-xl shrink-0">${r.icon}</span>
+        <span class="text-sm text-soft flex-1 min-w-0">${escapeHtml(r.label)}</span>
+        <span class="text-sm font-bold text-main shrink-0">${r.value}</span>
+      </div>
+    `).join('');
+    card.classList.remove('hidden');
+  }
+
   // ============ RENDER: Summary + Dashboard ============
   function updateSummaryUI() {
     const el = document.getElementById('totalSpent');
@@ -4841,6 +4986,8 @@
       ? appState.totalSpent / appState.participants.length
       : 0;
     document.getElementById('statAvg').innerText = baht(avgPerPerson);
+
+    renderInsights();
 
     // Balance list — compact & clean
     const bDiv = document.getElementById('balanceList');
