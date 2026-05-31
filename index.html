@@ -2243,11 +2243,17 @@
       <div id="statClock" class="hidden space-y-1">
         <div class="flex items-center justify-between gap-1">
           <span class="text-xl shrink-0">🇹🇭</span>
-          <span class="text-lg font-bold text-main tabular-nums" id="clockTH">--:--</span>
+          <span class="flex items-baseline gap-1.5">
+            <span class="text-[9px] text-muted tabular-nums" id="clockTHDate"></span>
+            <span class="text-lg font-bold text-main tabular-nums" id="clockTH">--:--</span>
+          </span>
         </div>
         <div class="flex items-center justify-between gap-1">
           <span class="text-xl shrink-0" id="clockLocalFlag">📍</span>
-          <span class="text-lg font-bold accent-text tabular-nums" id="clockLocal">--:--</span>
+          <span class="flex items-baseline gap-1.5">
+            <span class="text-[9px] text-muted tabular-nums" id="clockLocalDate"></span>
+            <span class="text-lg font-bold accent-text tabular-nums" id="clockLocal">--:--</span>
+          </span>
         </div>
         <div class="text-[10px] text-muted text-center pt-0.5" id="clockDiff"></div>
       </div>
@@ -4983,13 +4989,20 @@
     'Asia/Tokyo': { flag: '🇯🇵', th: 'ญี่ปุ่น', en: 'Japan' },
     'Asia/Bangkok': { flag: '🇹🇭', th: 'ไทย', en: 'Thailand' },
     'Asia/Ho_Chi_Minh': { flag: '🇻🇳', th: 'เวียดนาม', en: 'Vietnam' },
+    'Asia/Saigon': { flag: '🇻🇳', th: 'เวียดนาม', en: 'Vietnam' },
     'Asia/Singapore': { flag: '🇸🇬', th: 'สิงคโปร์', en: 'Singapore' },
     'Asia/Shanghai': { flag: '🇨🇳', th: 'จีน', en: 'China' },
     'Asia/Taipei': { flag: '🇹🇼', th: 'ไต้หวัน', en: 'Taiwan' },
     'Asia/Hong_Kong': { flag: '🇭🇰', th: 'ฮ่องกง', en: 'Hong Kong' },
     'Asia/Kuala_Lumpur': { flag: '🇲🇾', th: 'มาเลเซีย', en: 'Malaysia' },
+    'Asia/Jakarta': { flag: '🇮🇩', th: 'อินโดนีเซีย', en: 'Indonesia' },
+    'Asia/Manila': { flag: '🇵🇭', th: 'ฟิลิปปินส์', en: 'the Philippines' },
+    'Asia/Dubai': { flag: '🇦🇪', th: 'ดูไบ', en: 'Dubai' },
+    'Asia/Kolkata': { flag: '🇮🇳', th: 'อินเดีย', en: 'India' },
     'Europe/London': { flag: '🇬🇧', th: 'อังกฤษ', en: 'the UK' },
     'Europe/Paris': { flag: '🇫🇷', th: 'ฝรั่งเศส', en: 'France' },
+    'Europe/Rome': { flag: '🇮🇹', th: 'อิตาลี', en: 'Italy' },
+    'Europe/Zurich': { flag: '🇨🇭', th: 'สวิตเซอร์แลนด์', en: 'Switzerland' },
     'America/New_York': { flag: '🇺🇸', th: 'อเมริกา', en: 'the USA' },
     'America/Los_Angeles': { flag: '🇺🇸', th: 'อเมริกา', en: 'the USA' },
     'Australia/Sydney': { flag: '🇦🇺', th: 'ออสเตรเลีย', en: 'Australia' }
@@ -5079,13 +5092,28 @@
       const opt = { hour: '2-digit', minute: '2-digit', hour12: false };
       document.getElementById('clockTH').innerText = d.toLocaleTimeString('en-GB', { ...opt, timeZone: 'Asia/Bangkok' });
       document.getElementById('clockLocal').innerText = d.toLocaleTimeString('en-GB', { ...opt, timeZone: localTZ });
+
+      // วันที่ของแต่ละโซน — แสดงเฉพาะเมื่อข้ามวันกัน (เช่นไทยยังเป็นเมื่อวาน แต่ที่นั่นวันใหม่แล้ว)
+      const en = getLang() === 'en';
+      const dOpt = { day: 'numeric', month: 'short' };
+      const thDate = d.toLocaleDateString(en ? 'en-GB' : 'th-TH', { ...dOpt, timeZone: 'Asia/Bangkok' });
+      const locDate = d.toLocaleDateString(en ? 'en-GB' : 'th-TH', { ...dOpt, timeZone: localTZ });
+      const thDateEl = document.getElementById('clockTHDate');
+      const locDateEl = document.getElementById('clockLocalDate');
+      if (thDate !== locDate) {
+        if (thDateEl) thDateEl.innerText = thDate;
+        if (locDateEl) locDateEl.innerText = locDate;
+      } else {
+        if (thDateEl) thDateEl.innerText = '';
+        if (locDateEl) locDateEl.innerText = '';
+      }
+
       // ผลต่างชั่วโมง (เวลาท้องถิ่นเทียบกับไทย)
       const thMs = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })).getTime();
       const locMs = new Date(d.toLocaleString('en-US', { timeZone: localTZ })).getTime();
       const diffH = Math.round((locMs - thMs) / 3600000);
       const diffEl = document.getElementById('clockDiff');
       if (diffEl) {
-        const en = getLang() === 'en';
         if (diffH === 0) {
           diffEl.innerText = en ? 'Same time' : 'เวลาเดียวกัน';
         } else {
