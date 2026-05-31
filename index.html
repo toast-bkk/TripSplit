@@ -4244,7 +4244,7 @@
 
   function getBaseAmount() {
     const amtEl = document.getElementById('amount');
-    let rawVal = amtEl ? amtEl.value : '';
+    let rawVal = amtEl ? amtEl.value.replace(/,/g, '') : '';
     let amt;
     if (rawVal && isCalcExpr(rawVal)) {
       const r = safeEvalExpr(rawVal);
@@ -4297,6 +4297,7 @@
       // custom mode: parse แต่ละช่อง (รองรับ expression)
       const parseField = (v) => {
         if (!v) return 0;
+        v = String(v).replace(/,/g, '');
         if (isCalcExpr(v)) {
           const r = safeEvalExpr(v);
           return r !== null ? r : 0;
@@ -4422,7 +4423,7 @@
             // อัปเดต field ให้แสดงผลลัพธ์
             if (r !== null) i.value = (Math.round(r * 100) / 100).toString();
           } else {
-            v = parseFloat(i.value) || 0;
+            v = parseFloat(String(i.value).replace(/,/g, '')) || 0;
           }
           if (v > 0) { splitDetails[i.dataset.name] = v; sum += v; }
         });
@@ -4554,7 +4555,7 @@
     document.getElementById('editingId').value = id;
     document.getElementById('payer').value = rec.payer;
     document.getElementById('item').value = rec.item;
-    document.getElementById('amount').value = rec.amount;
+    document.getElementById('amount').value = formatThousands(String(rec.amount));
     document.getElementById('currency').value = rec.currency;
     document.getElementById('exchangeRate').value = rec.exchangeRate || 1;
     document.getElementById('noteInput').value = rec.note || '';
@@ -4620,7 +4621,8 @@
           });
         } else if (detectedMode === 'custom') {
           document.querySelectorAll('.custom-amount-input').forEach(i => {
-            i.value = rec.details[i.dataset.name] || '';
+            const v = rec.details[i.dataset.name];
+            i.value = (v || v === 0) ? formatThousands(String(v)) : '';
           });
         }
         // share mode: renderSplitList ใช้ _shareMultipliers ตรงๆ อยู่แล้ว
@@ -6523,8 +6525,40 @@
     }
   }
 
+  // ใส่ลูกน้ำคั่นหลักพันในตัวเลข (เฉพาะส่วนจำนวนเต็ม คงทศนิยมไว้)
+  function formatThousands(numStr) {
+    if (numStr === '' || numStr === '.') return numStr;
+    const neg = numStr.startsWith('-');
+    let s = neg ? numStr.slice(1) : numStr;
+    const parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '-' : '') + parts.join('.');
+  }
+
+  // ใส่ลูกน้ำในช่อง amount พร้อมรักษาตำแหน่ง cursor
+  function applyThousandFormat(input) {
+    const val = input.value;
+    // ไม่ฟอร์แมตถ้าเป็นสูตรคณิต (มี + - * /) — ปล่อยให้พิมพ์สูตรได้
+    if (isCalcExpr(val)) return;
+    const selStart = input.selectionStart;
+    const digitsBefore = (val.slice(0, selStart).match(/[0-9.]/g) || []).length;
+    const raw = val.replace(/,/g, '');
+    if (!/^[0-9]*\.?[0-9]*$/.test(raw)) return; // มีอักขระแปลก ไม่ฟอร์แมต
+    const formatted = formatThousands(raw);
+    if (formatted === val) return;
+    input.value = formatted;
+    // คืนตำแหน่ง cursor: เดินหา index ที่นับตัวเลข/จุดได้ครบเท่าเดิม
+    let count = 0, pos = 0;
+    for (; pos < formatted.length; pos++) {
+      if (/[0-9.]/.test(formatted[pos])) count++;
+      if (count >= digitsBefore) { pos++; break; }
+    }
+    try { input.setSelectionRange(pos, pos); } catch (e) {}
+  }
+
   function onAmountInput(input) {
     if (input) _calcActiveInput = input;
+    applyThousandFormat(input);
     updateCalcPreview();
     // ถ้าไม่ใช่ expression — trigger calculate ทันที
     if (!isCalcExpr(input.value)) {
@@ -6541,7 +6575,7 @@
     // ถ้ามี expression ค้างอยู่ → calculate ก่อน blur
     if (input && isCalcExpr(input.value)) {
       const r = safeEvalExpr(input.value);
-      if (r !== null) input.value = r.toFixed(2).replace(/\.00$/, '');
+      if (r !== null) input.value = formatThousands(r.toFixed(2).replace(/\.00$/, ''));
     }
     calculateSplit();
     // delay ปิด นานหน่อย (~400ms) เพื่อให้ touchend ปุ่ม calc ทำงานได้ก่อน
