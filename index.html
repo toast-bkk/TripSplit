@@ -5018,7 +5018,7 @@
     const en = getLang() === 'en';
     const info = TZ_COUNTRY[tz];
     if (tz === 'Asia/Bangkok') {
-      showWelcome('🏠', en ? 'Welcome home!' : 'ยินดีต้อนรับกลับบ้าน', en ? 'Hope you had a great trip ✈️' : 'หวังว่าเที่ยวสนุกนะ ✈️');
+      showWelcome('🏠', en ? 'Welcome home!' : 'ยินดีต้อนรับกลับบ้าน', en ? "Let's check your trip summary" : 'มาดูสรุปยอดใช้จ่ายกัน');
     } else {
       const name = info ? (en ? info.en : info.th) : (en ? 'your destination' : 'จุดหมายใหม่');
       const flag = info ? info.flag : '🌏';
