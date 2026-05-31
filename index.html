@@ -5054,13 +5054,11 @@
     const label = document.getElementById('statCardLabel');
     const icon = document.getElementById('statCardIcon');
 
-    // เทียบ offset จริงของไทยกับเครื่อง — ถ้าตรงกัน (อยู่ไทย) แสดงจำนวนรายการตามเดิม
-    const now = new Date();
-    const thStr = now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
-    const localStr = now.toLocaleString('en-US', { timeZone: localTZ });
-    const sameZone = new Date(thStr).getTime() === new Date(localStr).getTime();
+    // เทียบจากชื่อ timezone — ถ้าเป็นไทย (Asia/Bangkok) แสดงจำนวนรายการตามเดิม
+    // ประเทศที่เวลาตรงกับไทยแต่คนละ timezone (เช่นเวียดนาม) ยังแสดงนาฬิกา + บอก "เวลาเดียวกัน"
+    const isThailand = localTZ === 'Asia/Bangkok';
 
-    if (sameZone || !card) {
+    if (isThailand || !card) {
       if (card) card.classList.add('hidden');
       if (countEl) countEl.classList.remove('hidden');
       if (label) { label.removeAttribute('data-i18n'); label.innerText = getLang() === 'en' ? 'ITEMS' : 'รายการ'; }
