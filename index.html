@@ -4988,28 +4988,78 @@
 
   // map timezone → ประเทศ (ธง + ชื่อ)
   const TZ_COUNTRY = {
+    // เอเชีย
     'Asia/Seoul': { flag: '🇰🇷', th: 'เกาหลี', en: 'Korea' },
     'Asia/Tokyo': { flag: '🇯🇵', th: 'ญี่ปุ่น', en: 'Japan' },
     'Asia/Bangkok': { flag: '🇹🇭', th: 'ไทย', en: 'Thailand' },
     'Asia/Ho_Chi_Minh': { flag: '🇻🇳', th: 'เวียดนาม', en: 'Vietnam' },
     'Asia/Saigon': { flag: '🇻🇳', th: 'เวียดนาม', en: 'Vietnam' },
+    'Asia/Vientiane': { flag: '🇱🇦', th: 'ลาว', en: 'Laos' },
+    'Asia/Phnom_Penh': { flag: '🇰🇭', th: 'กัมพูชา', en: 'Cambodia' },
+    'Asia/Yangon': { flag: '🇲🇲', th: 'พม่า', en: 'Myanmar' },
     'Asia/Singapore': { flag: '🇸🇬', th: 'สิงคโปร์', en: 'Singapore' },
     'Asia/Shanghai': { flag: '🇨🇳', th: 'จีน', en: 'China' },
     'Asia/Taipei': { flag: '🇹🇼', th: 'ไต้หวัน', en: 'Taiwan' },
     'Asia/Hong_Kong': { flag: '🇭🇰', th: 'ฮ่องกง', en: 'Hong Kong' },
+    'Asia/Macau': { flag: '🇲🇴', th: 'มาเก๊า', en: 'Macau' },
     'Asia/Kuala_Lumpur': { flag: '🇲🇾', th: 'มาเลเซีย', en: 'Malaysia' },
     'Asia/Jakarta': { flag: '🇮🇩', th: 'อินโดนีเซีย', en: 'Indonesia' },
+    'Asia/Makassar': { flag: '🇮🇩', th: 'อินโดนีเซีย', en: 'Indonesia' },
     'Asia/Manila': { flag: '🇵🇭', th: 'ฟิลิปปินส์', en: 'the Philippines' },
     'Asia/Dubai': { flag: '🇦🇪', th: 'ดูไบ', en: 'Dubai' },
     'Asia/Kolkata': { flag: '🇮🇳', th: 'อินเดีย', en: 'India' },
+    'Asia/Kathmandu': { flag: '🇳🇵', th: 'เนปาล', en: 'Nepal' },
+    'Asia/Colombo': { flag: '🇱🇰', th: 'ศรีลังกา', en: 'Sri Lanka' },
+    'Asia/Tashkent': { flag: '🇺🇿', th: 'อุซเบกิสถาน', en: 'Uzbekistan' },
+    'Asia/Jerusalem': { flag: '🇮🇱', th: 'อิสราเอล', en: 'Israel' },
+    'Asia/Istanbul': { flag: '🇹🇷', th: 'ตุรกี', en: 'Turkey' },
+    'Europe/Istanbul': { flag: '🇹🇷', th: 'ตุรกี', en: 'Turkey' },
+    'Asia/Qatar': { flag: '🇶🇦', th: 'กาตาร์', en: 'Qatar' },
+    // ยุโรป
     'Europe/London': { flag: '🇬🇧', th: 'อังกฤษ', en: 'the UK' },
     'Europe/Paris': { flag: '🇫🇷', th: 'ฝรั่งเศส', en: 'France' },
     'Europe/Rome': { flag: '🇮🇹', th: 'อิตาลี', en: 'Italy' },
     'Europe/Zurich': { flag: '🇨🇭', th: 'สวิตเซอร์แลนด์', en: 'Switzerland' },
+    'Europe/Berlin': { flag: '🇩🇪', th: 'เยอรมนี', en: 'Germany' },
+    'Europe/Madrid': { flag: '🇪🇸', th: 'สเปน', en: 'Spain' },
+    'Europe/Amsterdam': { flag: '🇳🇱', th: 'เนเธอร์แลนด์', en: 'the Netherlands' },
+    'Europe/Brussels': { flag: '🇧🇪', th: 'เบลเยียม', en: 'Belgium' },
+    'Europe/Vienna': { flag: '🇦🇹', th: 'ออสเตรีย', en: 'Austria' },
+    'Europe/Lisbon': { flag: '🇵🇹', th: 'โปรตุเกส', en: 'Portugal' },
+    'Europe/Prague': { flag: '🇨🇿', th: 'เช็ก', en: 'Czechia' },
+    'Europe/Athens': { flag: '🇬🇷', th: 'กรีซ', en: 'Greece' },
+    'Europe/Moscow': { flag: '🇷🇺', th: 'รัสเซีย', en: 'Russia' },
+    'Europe/Stockholm': { flag: '🇸🇪', th: 'สวีเดน', en: 'Sweden' },
+    'Europe/Oslo': { flag: '🇳🇴', th: 'นอร์เวย์', en: 'Norway' },
+    'Europe/Copenhagen': { flag: '🇩🇰', th: 'เดนมาร์ก', en: 'Denmark' },
+    'Europe/Helsinki': { flag: '🇫🇮', th: 'ฟินแลนด์', en: 'Finland' },
+    'Europe/Dublin': { flag: '🇮🇪', th: 'ไอร์แลนด์', en: 'Ireland' },
+    // อเมริกา
     'America/New_York': { flag: '🇺🇸', th: 'อเมริกา', en: 'the USA' },
+    'America/Chicago': { flag: '🇺🇸', th: 'อเมริกา', en: 'the USA' },
+    'America/Denver': { flag: '🇺🇸', th: 'อเมริกา', en: 'the USA' },
     'America/Los_Angeles': { flag: '🇺🇸', th: 'อเมริกา', en: 'the USA' },
-    'Australia/Sydney': { flag: '🇦🇺', th: 'ออสเตรเลีย', en: 'Australia' }
+    'America/Toronto': { flag: '🇨🇦', th: 'แคนาดา', en: 'Canada' },
+    'America/Vancouver': { flag: '🇨🇦', th: 'แคนาดา', en: 'Canada' },
+    'America/Mexico_City': { flag: '🇲🇽', th: 'เม็กซิโก', en: 'Mexico' },
+    'America/Sao_Paulo': { flag: '🇧🇷', th: 'บราซิล', en: 'Brazil' },
+    // โอเชียเนีย
+    'Australia/Sydney': { flag: '🇦🇺', th: 'ออสเตรเลีย', en: 'Australia' },
+    'Australia/Melbourne': { flag: '🇦🇺', th: 'ออสเตรเลีย', en: 'Australia' },
+    'Australia/Perth': { flag: '🇦🇺', th: 'ออสเตรเลีย', en: 'Australia' },
+    'Australia/Brisbane': { flag: '🇦🇺', th: 'ออสเตรเลีย', en: 'Australia' },
+    'Pacific/Auckland': { flag: '🇳🇿', th: 'นิวซีแลนด์', en: 'New Zealand' },
+    // แอฟริกา
+    'Africa/Cairo': { flag: '🇪🇬', th: 'อียิปต์', en: 'Egypt' },
+    'Africa/Johannesburg': { flag: '🇿🇦', th: 'แอฟริกาใต้', en: 'South Africa' }
   };
+
+  // ดึงชื่อเมืองจาก timezone (เช่น 'Europe/Berlin' → 'Berlin') สำหรับโซนที่ไม่มีในรายการ
+  function cityFromTZ(tz) {
+    if (!tz || tz.indexOf('/') === -1) return null;
+    const city = tz.split('/').pop().replace(/_/g, ' ');
+    return city || null;
+  }
 
   // ตรวจจับการเปลี่ยนประเทศ (timezone) แล้วแสดงหน้าต้อนรับ
   function checkCountryChange() {
@@ -5023,8 +5073,16 @@
     if (tz === 'Asia/Bangkok') {
       showWelcome('🏠', en ? 'Welcome home!' : 'ยินดีต้อนรับกลับบ้าน', en ? "Let's check your trip summary" : 'มาดูสรุปยอดใช้จ่ายกัน');
     } else {
-      const name = info ? (en ? info.en : info.th) : (en ? 'your destination' : 'จุดหมายใหม่');
-      const flag = info ? info.flag : '🌏';
+      let name, flag;
+      if (info) {
+        name = en ? info.en : info.th;
+        flag = info.flag;
+      } else {
+        // ไม่มีในรายการ → ดึงชื่อเมืองจาก timezone มาแสดง (เช่น Berlin, Cairo)
+        const city = cityFromTZ(tz);
+        name = city || (en ? 'your destination' : 'จุดหมายใหม่');
+        flag = '🌏';
+      }
       showWelcome(flag, en ? `Welcome to ${name}!` : `ยินดีต้อนรับสู่${name}`, en ? 'Enjoy your trip ✈️' : 'เที่ยวให้สนุกนะ ✈️');
     }
   }
