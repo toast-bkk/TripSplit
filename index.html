@@ -1963,7 +1963,7 @@
     </select>
   </button>
   <button onclick="toggleTheme()" class="header-icon-btn" id="themeToggleBtn" aria-label="สลับโหมดมืด/สว่าง/ตามระบบ">
-    <i data-lucide="monitor" class="h-[18px] w-[18px]" id="themeIcon"></i>
+    <i data-lucide="sun-moon" class="h-[18px] w-[18px]" id="themeIcon"></i>
   </button>
 </header>
 
@@ -2482,7 +2482,7 @@
         <span class="text-xs accent-bg-soft px-2 py-0.5 rounded-full font-semibold" id="langBadge">ไทย</span>
       </button>
       <button onclick="toggleTheme()" class="w-full flex items-center gap-3 p-2.5 rounded-lg surface-2 text-sm">
-        <i data-lucide="monitor" class="h-4 w-4 text-soft shrink-0" id="navThemeIcon"></i>
+        <i data-lucide="sun-moon" class="h-4 w-4 text-soft shrink-0" id="navThemeIcon"></i>
         <span class="font-medium text-main flex-1 text-left" data-i18n="settings_theme">ธีม / โหมดมืด</span>
         <span class="text-xs surface-3 px-2 py-0.5 rounded-full font-semibold" id="themeBadge">Light</span>
       </button>
@@ -2953,7 +2953,7 @@
             </div>
             <div>
               <div class="text-[11px] font-semibold text-soft uppercase tracking-wider mb-1.5 text-left">${t('ob_prefs_theme')}</div>
-              <div class="ob-opt-row">${themeOpt('light', 'sun', t('ob_theme_light'))}${themeOpt('dark', 'moon', t('ob_theme_dark'))}${themeOpt('system', 'monitor', t('ob_theme_system'))}</div>
+              <div class="ob-opt-row">${themeOpt('light', 'sun', t('ob_theme_light'))}${themeOpt('dark', 'moon', t('ob_theme_dark'))}${themeOpt('system', 'sun-moon', t('ob_theme_system'))}</div>
             </div>
           </div>
         </div>`;
@@ -3281,9 +3281,9 @@
 
     document.documentElement.classList.toggle('dark', resolved === 'dark');
 
-    // ไอคอนปุ่มบน header: system → monitor, dark → sun, light → moon
+    // ไอคอนปุ่มบน header: system → sun-moon, dark → sun, light → moon
     const currentPref = getThemePref();
-    const iconName = currentPref === 'system' ? 'monitor' : (resolved === 'dark' ? 'sun' : 'moon');
+    const iconName = currentPref === 'system' ? 'sun-moon' : (resolved === 'dark' ? 'sun' : 'moon');
     const icon = document.getElementById('themeIcon');
     if (icon) icon.setAttribute('data-lucide', iconName);
     const navIcon = document.getElementById('navThemeIcon');
