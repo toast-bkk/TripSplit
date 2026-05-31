@@ -4675,8 +4675,8 @@
         const ob = document.getElementById('onboarding');
         return ob && ob.classList.contains('show');
       })();
-      // ถ้าสร้างจากออนบอร์ดดิ้ง → โชว์หน้าโหลดแอปทันทีระหว่างรอ backend
-      if (fromOnboarding) showAppLoading();
+      // โชว์หน้าโหลดระหว่างรอ backend (ทั้งจากออนบอร์ดดิ้งและหน้าตั้งค่า)
+      showAppLoading(getLang() === 'en' ? 'Creating trip…' : 'กำลังเตรียมทริป...');
       callBackend('addTrip', [val], res => {
         appState = res;
         updateAllUI();
@@ -4685,6 +4685,7 @@
           finishOnboarding();
           hideAppLoading();
         } else {
+          hideAppLoading();
           showToast('สร้างทริปสำเร็จ', 'success');
         }
       });
