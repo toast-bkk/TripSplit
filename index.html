@@ -5068,6 +5068,8 @@
     if (!last) { localStorage.setItem('trip_last_tz', tz); return; } // ครั้งแรก — จำไว้เฉยๆ
     if (last === tz) return; // ไม่เปลี่ยน
     localStorage.setItem('trip_last_tz', tz);
+    // อัปเดตการ์ดนาฬิกาทันที (เพราะโซนเวลาเปลี่ยนแล้ว)
+    if (typeof updateWorldClock === 'function') updateWorldClock();
     const en = getLang() === 'en';
     const info = TZ_COUNTRY[tz];
     if (tz === 'Asia/Bangkok') {
@@ -6828,6 +6830,12 @@
         }
       }
     });
+
+    // เช็คการเปลี่ยน timezone แบบ realtime — เด้งหน้าต้อนรับทันทีที่เปลี่ยนประเทศ
+    // (ไม่ต้องรอเปิดแอปใหม่หรือสลับกลับมาที่แอป) เช็คทุก 15 วินาทีขณะแอปเปิดอยู่
+    setInterval(() => {
+      if (document.visibilityState === 'visible') checkCountryChange();
+    }, 15000);
 
     initPullToRefresh();
     initCalcStrip();
